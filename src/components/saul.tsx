@@ -3,10 +3,11 @@ export default function Saul({
   state = "idle",
   className = "",
 }: {
-  state?: "idle" | "thinking" | "approved";
+  state?: "idle" | "smoking" | "thinking" | "approved" | "seated";
   className?: string;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const animation = "/chibi/saul-" + state + ".webp";
   const reduce =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -14,15 +15,19 @@ export default function Saul({
     <img
       className={"saul " + className}
       src={
-        failed || reduce
+        failedSource === animation || reduce || state === "seated"
           ? "/chibi/saul-" + state + ".png"
-          : "/chibi/saul-" + state + ".webp"
+          : animation
       }
-      onError={() => setFailed(true)}
+      onError={() => setFailedSource(animation)}
       alt={
-        state === "thinking"
-          ? "Saul is thinking"
-          : "Saul Goodman, your accounting companion"
+        state === "seated"
+          ? "Saul Goodman sitting with your Dots"
+          : state === "smoking"
+            ? "Saul Goodman smoking a cigar"
+            : state === "thinking"
+              ? "Saul is thinking"
+              : "Saul Goodman, your accounting companion"
       }
       width={416}
       height={554}
