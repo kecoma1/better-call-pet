@@ -109,6 +109,11 @@ export default function ChatThread({
           {w.error}
         </p>
       )}
+      {(messages.length > 0 || !!w.pending) && (
+        <div className="chat-composer-scene" aria-hidden="true">
+          <Saul state="pacing" className="chat-composer-saul" />
+        </div>
+      )}
       <form
         className="chat-composer"
         onSubmit={(e) => {

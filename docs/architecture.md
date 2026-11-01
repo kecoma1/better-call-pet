@@ -75,6 +75,9 @@ The settings connection scene uses `saul-seated.webm`, a silent transparent VP9 
 
 `public/chibi/saul-{idle,smoking,thinking,approved,pacing}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. The floating chat launcher explicitly uses `smoking`, the relaxed cigar-only clip. The launcher shows only Saul’s animated icon and status dot, without the “Better call Saul” callout. The notifications banner uses `thinking` for pending work and `approved` when caught up, so it never shares the launcher's animation. Inside chat, Saul uses the `pacing` animation in the empty state; messages occupy the conversation area once a question is sent. Each state has its own matching PNG for reduced motion or failed animation loads; errors are scoped to the failed animation. The HTML loader randomly chooses PNG states, with an idle fallback.
 
+Once a normal chat has a message (including the first pending question), a smaller
+pacing Saul appears directly above the textarea, outside the scrolling history.
+
 The voice scene uses its own `saul-phone.webp`: a six-second transparent loop of
 Saul talking on a phone, taking short steps left and right. `saul-phone.png` is the
 matching still. Source pose and chroma frame live in `marketing/chibi/source/`,
