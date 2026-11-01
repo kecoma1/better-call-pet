@@ -1,0 +1,11 @@
+Saul fumando
+
+Saul fuma un puro tranquilamente y deja salir una pequeña voluta de humo. Durante el ciclo guarda el puro, muestra el recibo y vuelve a fumar, manteniendo su actitud confiada.
+
+Uso previsto: Botón flotante del chat y estado en reposo.
+
+Animación: saul-idle.webp
+Imagen estática sin fondo: saul-idle.png
+Formato: WebP animado transparente, 416 × 554 px, 15 fps, 6 segundos, loop infinito.
+Estilo: pixel art; Saul con traje azul de raya diplomática y corbata naranja.
+Crédito: animación generada con BytePlus ModelArk Seedance.

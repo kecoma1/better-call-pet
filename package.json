@@ -8,14 +8,17 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:voice:live": "node --env-file=.env node_modules/vitest/vitest.mjs run --config qa/voice.vitest.config.ts",
     "preview": "vite preview --host 0.0.0.0",
     "check": "npm test && npm run build && npm --prefix functions run build"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cn": "^0.5.1",
     "firebase": "^13.0.0",
     "lucide-react": "^0.552.0",
+    "pdf-lib": "^1.17.1",
     "radix-ui": "^1.8.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

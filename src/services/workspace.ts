@@ -24,8 +24,9 @@ export async function extractReceipt(image: string) {
 }
 export async function sendChat(
   messages: { role: "user" | "assistant"; content: string }[],
+  signal?: AbortSignal,
 ) {
-  const d = await api("/chat", { messages });
+  const d = await api("/chat", { messages }, signal);
   if (typeof d.message !== "string")
     throw Error("Saul could not finish his reply.");
   return d.message as string;

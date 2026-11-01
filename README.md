@@ -1,8 +1,25 @@
 # Better Call Pet
 
+Saul supports internal browser voice calls from the chat's phone button: live
+captions, mute/unmute, hang-up and a dedicated phone animation. Calls use GPT-Live
+with the existing gpt-6-luna agent and server tools. Deploy Functions and Hosting
+together to enable the new endpoint; no extra secret is required beyond
+`OPENAI_API_KEY` with GPT-Live access. See `docs/architecture.md` and `docs/contracts.md`.
+
+Voice validation: `npm test -- --maxWorkers=2`, `npm run build`,
+`npm --prefix functions run build` and
+`PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- tests/e2e/voice.spec.ts tests/e2e/expenses.spec.ts --workers=1`.
+For the opt-in paid provider smoke on macOS, run
+`RUN_VOICE_LIVE=1 npm run test:voice:live`. It uses synthetic speech, fixture
+Firebase identity and fixture books with the real voice provider, gpt-6-luna
+and shared receipt tools; it never opens the microphone or production Firestore.
+The [OpenAI GPT-Live WebRTC guide](https://developers.openai.com/api/docs/guides/voice-webrtc)
+and [delegation guide](https://developers.openai.com/api/docs/guides/live-delegation)
+describe the provider protocol used here.
+
 A dark-only, internal expenses workspace for a UK LTD, with Saul Goodman as its accounting companion. Built at the DevDay Exchange Community Hackathon, London, 1 November 2026.
 
-**Core journey:** add a GBP receipt → review extracted fields → classify input VAT → inspect the proposed journal → approve and post once → export the ledger. The public demo uses fictional receipts and clearly labelled illustrative rules. Live data requires an authorised Google account.
+**Core journey:** add a GBP receipt → review extracted fields → classify input VAT → inspect the proposed journal → approve and post once → export the ledger. The public demo opens a persistent anonymous Firebase session automatically. It supports the same real AI chat, voice, receipt extraction, VAT decisions, posting and invoice PDF services in an isolated workspace. The shared internal company still requires an authorised Google account.
 
 ## Run locally
 
@@ -17,7 +34,7 @@ cp .env.example .env
 npm run dev
 ```
 
-The frontend runs at http://localhost:5173. Its demo works without credentials and stores only fictional data in this browser. `npm run build` produces `dist/`.
+The frontend runs at http://localhost:5173. Without Firebase configuration, an explicitly labelled offline demo stores fictional data in this browser. With configuration, the app automatically resumes an anonymous server workspace and uses real AI; connection or provider failures never switch it to sample responses. `npm run build` produces `dist/`.
 
 For the live backend, create `functions/.env.rent-o-accountant` with `INTERNAL_ADMIN_EMAIL=your-authorised-google-email` and set `OPENAI_API_KEY` in Firebase Secret Manager. For the Functions emulator, put `OPENAI_API_KEY` in `functions/.secret.local` (ignored), then run:
 
@@ -37,6 +54,31 @@ npm run test:e2e
 
 For E2E, install Chromium with `npx playwright install chromium`, or use an existing Chrome installation with `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`.
 
+## Anonymous demo setup
+
+Enable **Anonymous** in Firebase Authentication → Sign-in method for `rent-o-accountant`.
+The app uses a separate Firebase Auth instance named `demo`, so visiting the site needs
+no Google prompt and the same anonymous identity survives reloads and internal sign-out.
+Anonymous identities must remain enabled while their saved workspaces are in use.
+Clearing browser site data loses the anonymous identity; it does not delete server records.
+OAuth assistant connections remain restricted to internal members.
+
+Deploy the frontend, Functions, rules and demo query indexes together:
+
+```bash
+firebase deploy --only hosting,functions:better-call-pet,firestore --project rent-o-accountant
+```
+
+Server-derived demo scope is carried through the existing shared tools. The root
+`demoCompanies`, `demoExpenses`, `demoJournals`, `demoInvoices` and `demoConversations`
+collections isolate every anonymous UID. Public invoice links remain in `invoiceLinks`
+and resolve to the matching workspace; demo PDFs are labelled DEMO. Initial fictional
+receipts retain explicit sample-rule provenance; new classifications use real Decisions.
+There is no automatic import of the older offline browser data into server workspaces.
+
+Chat retains its latest 100 messages, including voice captions, in a per-session conversation.
+Audio and original receipt images are not stored. AI usage retains the existing daily quota.
+
 ## Architecture
 
 React + TypeScript + Vite, shadcn/ui + Tailwind, Firebase Auth/Firestore/Functions/Hosting. All network calls pass through `src/services/` and the authenticated server. OpenAI keys never reach the browser.
@@ -48,6 +90,7 @@ Firestore uses **root collections**, shared by authorised internal users:
 | `users`                                                                         | Internal membership; `active` controls access.                        |
 | `companies/primary`                                                             | Shared LTD configuration.                                             |
 | `expenses`                                                                      | Receipt fields, decision provenance, review/post state, creator.      |
+| `invoices`, `invoiceLinks`                                                     | Immutable GBP sales drafts and unguessable public PDF URLs.           |
 | `journals`                                                                      | Balanced entries, one deterministic document per expense.             |
 | `aiUsage`                                                                       | Per-member daily AI request count.                                    |
 | `oauthClients`, `oauthCodes`, `oauthAccess`, `oauthRefresh`, `oauthConnections` | OAuth registration, short-lived grants, hashed tokens and revocation. |
@@ -58,7 +101,7 @@ See [architecture and work boundaries](docs/architecture.md) and [HTTP/tool cont
 
 ## OpenAI and MCP
 
-- **Agents SDK:** `gpt-6-luna` powers Saul, with tools for company details, expense listing and draft creation.
+- **Agents SDK:** `gpt-6-luna` powers Saul, with shared tools for company details, expenses and sales invoice drafts. Invoice tools create drafts, return public viewing/download URLs, and deliver PDF files through MCP. Invoice creation requires the explicit OAuth scope `invoices:write`.
 - **Decisions API:** `POST /v1/decisions`, model `gpt-6-luna`, typed choices `deductible`, `not_deductible`, `review`. This is a suggestion; missing evidence and special rules require review.
 - **Receipt extraction:** Responses API structured output, with nullable missing fields. GBP images only in this foundation; PNG/JPG/WebP below 4.5 MB.
 - **MCP:** the same tool registry is exposed at `/mcp` using stateless Streamable HTTP. OAuth discovery, dynamic client registration, browser consent, S256 PKCE, resource-bound access tokens, refresh rotation and revocation are implemented. No API keys are pasted into chats. Your Dot must support remote MCP and OAuth. The UI intentionally gives a connection guide rather than inventing a client-specific deep link.
@@ -66,6 +109,12 @@ See [architecture and work boundaries](docs/architecture.md) and [HTTP/tool cont
 MCP URL: `https://rent-o-accountant.web.app/mcp`. Posting is deliberately a UI action, unavailable to agent tools. OAuth integration needs an end-to-end check with the actual Dot client before it can be considered verified.
 
 ## Scope of this foundation
+
+Invoices supports immutable GBP sales drafts with line items, explicit VAT and a downloadable PDF.
+Creating a live draft publishes an unguessable public PDF URL; anyone holding it can view it without
+signing in. The form and OAuth consent explain sharing. Offline demo PDFs stay local to the browser; anonymous server demos support public DEMO PDF links.
+This version does not issue/send invoices, post sales journals or track invoice payments.
+
 
 Expenses are the complete first journey. Bookkeeping exports cover purchase journals and a trade-creditor balance; payment matching and bank reconciliation are future work. The annual accounts, Corporation Tax and VAT sections are **incomplete internal working papers**, with the declaration lifecycle shown for future implementation. They do not calculate a complete tax return, generate CT600/iXBRL, submit anything, or assert acceptance/payment.
 

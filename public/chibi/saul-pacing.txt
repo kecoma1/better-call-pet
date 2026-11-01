@@ -1,0 +1,11 @@
+Saul paseando pensativo de izquierda a derecha
+
+Saul camina pensativo de un lado al otro, con una mano en la barbilla y un recibo en la otra. Avanza desde la izquierda hacia la derecha, gira y vuelve hacia la izquierda, recuperando su posición inicial para repetir el ciclo. La cámara permanece fija y se ve el cuerpo completo durante todo el recorrido.
+
+Uso previsto: Variante animada de espera o reflexión, mientras se revisa un recibo o se prepara una respuesta.
+
+Animación: saul-pacing.webp
+Imagen estática sin fondo: saul-pacing.png
+Formato: WebP animado transparente, 416 × 554 px, 15 fps, 6 segundos, loop infinito.
+Estilo: pixel art; Saul con traje azul de raya diplomática y corbata naranja.
+Crédito: animación generada con BytePlus ModelArk Seedance.

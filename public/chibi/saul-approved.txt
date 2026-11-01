@@ -1,0 +1,11 @@
+Saul aprobando un recibo
+
+Saul muestra el recibo con una sonrisa confiada, asiente y levanta el pulgar en señal de aprobación. El movimiento vuelve suavemente a su pose inicial.
+
+Uso previsto: Confirmación visual de aprobación de un recibo.
+
+Animación: saul-approved.webp
+Imagen estática sin fondo: saul-approved.png
+Formato: WebP animado transparente, 416 × 554 px, 15 fps, 6 segundos, loop infinito.
+Estilo: pixel art; Saul con traje azul de raya diplomática y corbata naranja.
+Crédito: animación generada con BytePlus ModelArk Seedance.

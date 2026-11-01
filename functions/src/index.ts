@@ -5,7 +5,7 @@ export const api = onRequest(
   {
     region: "europe-west2",
     secrets: [defineSecret("OPENAI_API_KEY")],
-    timeoutSeconds: 120,
+    timeoutSeconds: 540,
     memory: "512MiB",
     maxInstances: 5,
   },

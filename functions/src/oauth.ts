@@ -3,6 +3,8 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { ensureDemoWorkspace } from "./demo.js";
+import type { WorkspaceActor } from "./workspace-context.js";
 export const origin = "https://rent-o-accountant.web.app";
 const resource = origin + "/mcp";
 const db = () => getFirestore();
@@ -75,6 +77,35 @@ export async function firebaseUser(
     res.status(401).json({ error: "Sign in required." });
   }
 }
+export async function requireWorkspace(actor: WorkspaceActor) {
+  if (typeof actor === "string") return requireInternal(actor);
+  const user = await getAuth().getUser(actor.uid);
+  if (user.disabled || user.providerData.length !== 0)
+    throw Error("Demo access disabled.");
+}
+export async function firebaseWorkspaceUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = req.headers.authorization?.replace(/^Bearer /, "");
+    if (!token) throw Error();
+    const claims = await getAuth().verifyIdToken(token, true);
+    const actor: WorkspaceActor = claims.firebase?.sign_in_provider === "anonymous"
+      ? { uid: claims.uid, demo: true }
+      : claims.uid;
+    if (typeof actor === "string")
+      await requireInternal(claims.uid, claims.email, claims.email_verified === true);
+    res.locals.uid = claims.uid;
+    res.locals.actor = actor;
+  } catch {
+    res.status(401).json({ error: "Workspace session unavailable. Please reopen the app." });
+    return;
+  }
+  try { await ensureDemoWorkspace(res.locals.actor); }
+  catch {
+    res.status(503).json({ error: "The demo workspace could not open. Please try again." });
+    return;
+  }
+  next();
+}
 const clients = () => db().collection("oauthClients");
 async function validateQuery(q: Record<string, unknown>) {
   const p = z
@@ -99,7 +130,7 @@ async function validateQuery(q: Record<string, unknown>) {
   if (
     !p.scope
       .split(" ")
-      .every((s) => ["accounts:read", "receipts:write"].includes(s))
+      .every((s) => ["accounts:read", "receipts:write", "invoices:write"].includes(s))
   )
     throw Error("Unsupported scope.");
   return { ...p, client_name: d.data()!.client_name };
@@ -109,7 +140,7 @@ export function setupOAuth(app: Express) {
     r.json({
       resource,
       authorization_servers: [origin],
-      scopes_supported: ["accounts:read", "receipts:write"],
+      scopes_supported: ["accounts:read", "receipts:write", "invoices:write"],
       bearer_methods_supported: ["header"],
     }),
   );
@@ -117,7 +148,7 @@ export function setupOAuth(app: Express) {
     r.json({
       resource,
       authorization_servers: [origin],
-      scopes_supported: ["accounts:read", "receipts:write"],
+      scopes_supported: ["accounts:read", "receipts:write", "invoices:write"],
     }),
   );
   app.get("/.well-known/oauth-authorization-server", (_q, r) =>
@@ -131,7 +162,7 @@ export function setupOAuth(app: Express) {
       grant_types_supported: ["authorization_code", "refresh_token"],
       token_endpoint_auth_methods_supported: ["none"],
       code_challenge_methods_supported: ["S256"],
-      scopes_supported: ["accounts:read", "receipts:write"],
+      scopes_supported: ["accounts:read", "receipts:write", "invoices:write"],
     }),
   );
   app.post("/oauth/register", async (q, r) => {

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   ReceiptText,
+  FileText,
   BookOpen,
   Files,
   Landmark,
@@ -12,7 +13,6 @@ import {
   PanelLeftOpen,
   Plus,
   Search,
-  LogIn,
   LogOut,
   ArrowUpRight,
 } from "lucide-react";
@@ -23,17 +23,21 @@ import { Card, CardContent } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
 import { useWorkspace } from "./hooks/use-workspace";
 import Overview from "./pages/overview";
+import Invoices from "./pages/invoices";
 import Books from "./pages/books";
 import Reports from "./pages/reports";
 import Settings from "./pages/settings";
 import Connect from "./pages/connect";
 import ReceiptTable from "./components/receipt-table";
 import ReceiptDialog from "./components/receipt-dialog";
+import ReceiptSheet from "./components/receipt-sheet";
 import Chat from "./components/chat";
+import Saul from "./components/saul";
 import type { Receipt } from "./domain";
 const navigation = [
   { name: "Overview", icon: LayoutDashboard },
   { name: "Receipts", icon: ReceiptText },
+  { name: "Invoices", icon: FileText },
   { name: "Bookkeeping", icon: BookOpen },
   { name: "Annual accounts", icon: Files },
   { name: "Corporation Tax", icon: Landmark },
@@ -49,17 +53,19 @@ export default function App() {
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("All receipts");
   const waiting = w.items.filter((r) => r.status === "review").length;
+  const internal = !!w.user && !w.user.isAnonymous;
+  useEffect(() => setSelected(null), [w.user?.uid]);
   const navigate = (p: string) => {
     setPage(p);
     setSearch("");
   };
   if (location.pathname === "/connect")
-    return <Connect live={!!w.user} onLogin={w.login} />;
+    return <Connect live={internal} onLogin={w.login} />;
   return (
     <div className={"app-shell " + (collapsed ? "collapsed" : "")}>
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="Better Call Pet home">
-          <img src="/favicon.svg" alt="" />
+          <Saul state="seated" />
           <span>
             better call{" "}
             <strong>
@@ -126,21 +132,21 @@ export default function App() {
             <div>
               <strong>{w.user?.displayName || "Demo workspace"}</strong>
               <small>
-                {w.user ? "Personal account" : "Have a look around"}
+                {internal ? "Personal account" : w.user ? "Saved automatically" : "Saved in this browser"}
               </small>
             </div>
-            <Button
+            {internal && <Button
               variant="ghost"
               size="icon"
-              aria-label={w.user ? "Sign out" : "Sign in"}
+              aria-label="Sign out"
               onClick={() =>
-                void (w.user ? w.logout() : w.login()).catch((e) =>
+                void w.logout().catch((e) =>
                   w.setError(e.message),
                 )
               }
             >
-              {w.user ? <LogOut size={16} /> : <LogIn size={16} />}
-            </Button>
+              <LogOut size={16} />
+            </Button>}
           </div>
         </div>
       </aside>
@@ -178,22 +184,17 @@ export default function App() {
             </span>
             <Badge variant="outline" className="workspace-mode">
               <span className="online-dot" />
-              {w.user ? "Live workspace" : "Demo mode"}
+              {internal ? "Live workspace" : w.user ? "Demo workspace" : w.offline ? "Offline demo" : w.loading ? "Opening workspace…" : "Session unavailable"}
             </Badge>
-            <Button variant="ghost" size="icon" className="mobile-settings" aria-label="Open settings" onClick={() => navigate("Settings")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mobile-settings"
+              aria-label="Open settings"
+              onClick={() => navigate("Settings")}
+            >
               <SettingsIcon size={16} />
             </Button>
-            {!w.user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  void w.login().catch((e) => w.setError(e.message))
-                }
-              >
-                Sign in <ArrowUpRight size={14} />
-              </Button>
-            )}
           </div>
         </header>
         <main>
@@ -275,29 +276,42 @@ export default function App() {
                 </CardContent>
               </Card>
             </>
+          ) : page === "Invoices" ? (
+            <Invoices
+              key={w.user?.uid || "demo"}
+              items={w.invoices}
+              company={w.company}
+              live={!!w.user}
+              onCreate={w.addInvoice}
+            />
           ) : page === "Bookkeeping" ? (
-            <Books items={w.items} />
+            <Books items={w.items} onSelect={setSelected} />
           ) : page === "Settings" ? (
-            <Settings company={w.company} onSave={w.save} live={!!w.user} />
+            <Settings company={w.company} onSave={w.save} live={internal} />
           ) : (
             <Reports page={page} items={w.items} company={w.company} />
           )}
         </main>
       </div>
       <ReceiptDialog
-        key={selected === "new" ? "new" : selected?.id || "closed"}
-        receipt={selected}
+        key={selected === "new" ? "new" : "closed"}
+        open={selected === "new"}
         onClose={() => setSelected(null)}
         onAdd={w.add}
-        onPost={w.post}
         live={!!w.user}
       />
-      <Chat
+      <ReceiptSheet
+        key={selected && selected !== "new" ? selected.id : "no-selection"}
+        receipt={selected && selected !== "new" ? selected : null}
+        onClose={() => setSelected(null)}
+        onPost={w.post}
+      />
+      {!w.loading && (w.user || w.offline) && <Chat
         key={w.user?.uid || "demo"}
         live={!!w.user}
         items={w.items}
         onRefresh={w.refresh}
-      />
+      />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import { auth } from "../firebase";
+import { currentWorkspaceUser } from "../firebase";
 export async function api(path: string, data?: unknown, signal?: AbortSignal) {
-  const token = await auth?.currentUser?.getIdToken();
+  const token = await currentWorkspaceUser()?.getIdToken();
   if (!token) throw Error("Sign in to use your live workspace.");
   const res = await fetch("/api" + path, {
     signal,

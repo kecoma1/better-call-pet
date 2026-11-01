@@ -17,6 +17,7 @@ afterEach(() => {
 });
 Object.defineProperty(window, "matchMedia", {
   configurable: true,
+  writable: true,
   value: () => ({
     matches: true,
     addEventListener: () => {},

@@ -49,9 +49,12 @@ export default function Connect({
                 workspace.
               </p>
               <p>
-                {preview.scope.includes("receipts:write")
-                  ? "Read company details and receipts. Create receipt drafts and update company settings."
-                  : "Read company details and receipt decisions."}
+                {preview.scope.includes("accounts:read") &&
+                  "Read company details, receipts and invoice drafts; download invoice PDFs and retrieve public links. "}
+                {preview.scope.includes("receipts:write") &&
+                  "Create receipt drafts and update company settings. "}
+                {preview.scope.includes("invoices:write") &&
+                  "Create invoice drafts with a PDF and a public URL anyone can view. "}
               </p>
               <p className="hint">
                 Callback: {new URL(preview.redirect_uri).origin}

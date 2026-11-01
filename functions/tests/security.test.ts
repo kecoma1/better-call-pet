@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-const state = vi.hoisted(() => ({ docs: new Map<string, any>() }));
+const state = vi.hoisted(() => ({ docs: new Map<string, any>(), disabled: false, providerData: [] as unknown[] }));
 vi.mock("firebase-admin/firestore", () => {
   const snap = (key: string) => ({
     exists: state.docs.has(key),
@@ -39,17 +39,45 @@ vi.mock("firebase-admin/firestore", () => {
   };
 });
 vi.mock("firebase-admin/auth", () => ({
-  getAuth: () => ({ verifyIdToken: vi.fn() }),
+  getAuth: () => ({
+    verifyIdToken: async (token: string) => {
+      if (token !== "anonymous-token") throw Error("Invalid token");
+      return { uid: "anonymous", firebase: { sign_in_provider: "anonymous" } };
+    },
+    getUser: async () => ({ disabled: state.disabled, providerData: state.providerData }),
+  }),
 }));
-import { requireInternal, mcpUser, hash } from "../src/oauth";
+import { requireInternal, requireWorkspace, firebaseWorkspaceUser, firebaseUser, mcpUser, hash } from "../src/oauth";
 import { createReceipt, postReceipt } from "../src/tools";
 import { examples, defaultCompany } from "../../src/domain";
 beforeEach(() => {
   state.docs.clear();
+  state.disabled = false; state.providerData = [];
   process.env.INTERNAL_ADMIN_EMAIL = "internal@example.test";
   process.env.OPENAI_API_KEY = "test-only-key";
 });
 describe("internal access and expenses service", () => {
+  it("derives the demo scope from verified claims and refuses internal access for the same anonymous token", async () => {
+    const res: any = { locals: {}, status: vi.fn().mockReturnThis(), json: vi.fn() };
+    const next = vi.fn();
+    const req: any = { headers: { authorization: "Bearer anonymous-token" }, body: { uid: "admin", demo: false } };
+    await firebaseWorkspaceUser(req, res, next);
+    expect(res.locals.actor).toEqual({ uid: "anonymous", demo: true });
+    expect(next).toHaveBeenCalledOnce();
+    expect(state.docs.has("users/anonymous")).toBe(false);
+    next.mockClear();
+    await firebaseUser(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+  it("revalidates anonymous access before agent tools and during calls", async () => {
+    const actor = { uid: "anonymous", demo: true as const };
+    await expect(requireWorkspace(actor)).resolves.toBeUndefined();
+    state.disabled = true;
+    await expect(requireWorkspace(actor)).rejects.toThrow("disabled");
+    state.disabled = false; state.providerData = [{ providerId: "google.com" }];
+    await expect(requireWorkspace(actor)).rejects.toThrow("disabled");
+  });
   it("enrolls only the verified configured initial admin", async () => {
     await expect(
       requireInternal("bad", "outsider@example.test", true),

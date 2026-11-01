@@ -1,10 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, X, Sparkles, Loader2 } from "lucide-react";
+import { ArrowUp, X, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import MessageContent from "./message-content";
 import Saul from "./saul";
+import VoiceCall from "./voice-call";
 import { sendChat } from "../services/workspace";
+import { fetchConversation, saveConversation } from "../services/conversation";
+import { welcomeConversation, recentConversation, type ChatMessage } from "../lib/conversation";
 import { money, type Receipt } from "../domain";
 export default function Chat({
   live,
@@ -16,24 +20,42 @@ export default function Chat({
   onRefresh: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false),
-    [messages, setMessages] = useState<
-      { role: "user" | "assistant"; content: string }[]
-    >([
-      {
-        role: "assistant",
-        content:
-          "Hey, I’m Saul. You handle the business. I’ll help with the fine print. What are we looking at?",
-      },
-    ]),
+    [messages, setMessages] = useState<ChatMessage[]>(welcomeConversation),
+    [loading, setLoading] = useState(true),
+    [historyError, setHistoryError] = useState(false),
+    [reload, setReload] = useState(0),
     [text, setText] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
+  const session = useRef<AbortController | null>(null);
+  const pendingSave = useRef(Promise.resolve());
+  useEffect(() => {
+    const controller = new AbortController();
+    session.current = controller;
+    setLoading(true);
+    setHistoryError(false);
+    setError("");
+    fetchConversation(live, controller.signal).then((saved) => {
+      if (!controller.signal.aborted) setMessages(saved.length ? saved : welcomeConversation);
+    }).catch((e: Error) => {
+      if (!controller.signal.aborted) { setError(e.message); setHistoryError(true); }
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
+    return () => controller.abort();
+  }, [live, reload]);
+  function persist(next: ChatMessage[]) {
+    const signal = session.current?.signal;
+    const saving = pendingSave.current.catch(() => {}).then(() => saveConversation(next, live, signal));
+    pendingSave.current = saving;
+    return saving;
+  }
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, busy]);
   async function send(value: string) {
-    if (!value.trim() || busy) return;
+    if (!value.trim() || busy || loading || historyError) return;
     const next = [
       ...messages,
       { role: "user" as const, content: value.trim() },
@@ -43,21 +65,25 @@ export default function Chat({
     setBusy(true);
     setError("");
     try {
+      await persist(next);
       let reply;
       if (live) {
-        reply = await sendChat(next.slice(-16));
-        await onRefresh();
+        reply = await sendChat(next.slice(-16), session.current?.signal);
       } else {
         const vat = items
           .filter((r) => r.status === "posted")
           .reduce((n, r) => n + r.decision.reclaimPence, 0);
-        reply = `This is the demo workspace. You have ${items.length} receipts and ${money(vat)} of recoverable VAT posted. ${items.filter((r) => r.status === "review").length} receipts are waiting for review. Open a receipt to see the reasoning. Sign in to chat with the live gpt-6-luna agent and create drafts.`;
+        reply = `This is the demo workspace. You have ${items.length} receipts and ${money(vat)} of recoverable VAT posted. ${items.filter((r) => r.status === "review").length} receipts are waiting for review. Open a receipt to see the reasoning. The live agent needs a configured backend.`;
       }
-      setMessages([...next, { role: "assistant", content: reply }]);
+      const completed = recentConversation([...next, { role: "assistant", content: reply }]);
+      if (session.current?.signal.aborted) return;
+      setMessages(completed);
+      await persist(completed);
+      if (live) await onRefresh();
     } catch (e) {
-      setError((e as Error).message);
+      if (!session.current?.signal.aborted) setError((e as Error).message);
     } finally {
-      setBusy(false);
+      if (!session.current?.signal.aborted) setBusy(false);
     }
   }
   return (
@@ -69,11 +95,7 @@ export default function Chat({
           aria-label="Open chat with Saul"
           onClick={() => setOpen(true)}
         >
-          <span className="chat-invite">
-            Better call Saul.
-            <Sparkles size={13} />
-          </span>
-          <Saul />
+          <Saul state="smoking" />
           <span className="online-dot" />
         </Button>
       )}
@@ -86,9 +108,17 @@ export default function Chat({
               <small>
                 {live
                   ? "gpt-6-luna · your accounting companion"
-                  : "Demo conversation"}
+                  : "Offline conversation"}
               </small>
             </div>
+            <VoiceCall live={live} disabled={busy || loading || historyError} messages={messages} onEnd={(captions) => {
+              if (captions.length) {
+                const next = recentConversation([...messages, ...captions.filter((c) => c.text.trim()).map((c) => ({ role: c.role, content: c.text }))]);
+                setMessages(next);
+                void persist(next).catch((e: Error) => { if (!session.current?.signal.aborted) setError(e.message); });
+              }
+              if (live) void onRefresh().catch((e: Error) => setError(e.message));
+            }} />
             <Button
               variant="ghost"
               size="icon"
@@ -101,7 +131,7 @@ export default function Chat({
           <div className="chat-messages" aria-live="polite">
             {messages.map((m, i) => (
               <div key={i} className={"message " + m.role}>
-                {m.content}
+                <MessageContent content={m.content} />
               </div>
             ))}
             {busy && (
@@ -118,7 +148,8 @@ export default function Chat({
             />
             <div ref={bottom} />
           </div>
-          {messages.length === 1 && (
+          {loading && <p role="status">Opening your conversation…</p>}
+          {!loading && !historyError && messages.length === 1 && (
             <div className="chat-suggestions">
               <Button
                 variant="outline"
@@ -134,6 +165,13 @@ export default function Chat({
               >
                 What VAT can I reclaim?
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void send("Help me create an invoice")}
+              >
+                Create an invoice
+              </Button>
             </div>
           )}
           {error && (
@@ -141,6 +179,7 @@ export default function Chat({
               {error}
             </p>
           )}
+          {historyError && <Button variant="outline" onClick={() => setReload((value) => value + 1)}>Retry conversation</Button>}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -154,7 +193,7 @@ export default function Chat({
               id="chat-input"
               value={text}
               maxLength={5000}
-              disabled={busy}
+              disabled={busy || loading || historyError}
               onChange={(e) => setText(e.target.value)}
               placeholder="Ask Saul anything about your books…"
             />
@@ -162,7 +201,7 @@ export default function Chat({
               size="icon"
               type="submit"
               aria-label="Send message"
-              disabled={busy || !text.trim()}
+              disabled={busy || loading || historyError || !text.trim()}
             >
               <ArrowUp />
             </Button>

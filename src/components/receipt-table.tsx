@@ -35,7 +35,26 @@ export default function ReceiptTable({
       <TableBody>
         {items.length ? (
           items.map((r) => (
-            <TableRow key={r.id}>
+            <TableRow
+              key={r.id}
+              className="detail-row"
+              tabIndex={0}
+              aria-label={"View expense details for " + r.vendor}
+              aria-haspopup="dialog"
+              onClick={(event) => {
+                event.currentTarget.focus();
+                onSelect(r);
+              }}
+              onKeyDown={(event) => {
+                if (
+                  event.target === event.currentTarget &&
+                  (event.key === "Enter" || event.key === " ")
+                ) {
+                  event.preventDefault();
+                  onSelect(r);
+                }
+              }}
+            >
               <TableCell>
                 <div className="vendor">
                   <span className="vendor-icon">
@@ -69,7 +88,10 @@ export default function ReceiptTable({
                   variant="ghost"
                   size="icon"
                   aria-label={"Review " + r.vendor}
-                  onClick={() => onSelect(r)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(r);
+                  }}
                 >
                   <ArrowUpRight size={16} />
                 </Button>
