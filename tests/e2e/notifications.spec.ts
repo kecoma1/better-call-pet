@@ -7,6 +7,10 @@ test("overview notifications open expenses and clear after approval", async ({
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
   const banner = page.getByRole("region", { name: "Notifications" });
+  const launcher = page
+    .getByRole("button", { name: "Open chat with Saul" })
+    .getByRole("img");
+  await expect(launcher).toHaveAttribute("src", "/chibi/saul-smoking.webp");
   await expect(banner.getByRole("img")).toHaveAttribute(
     "src",
     "/chibi/saul-thinking.webp",
@@ -28,6 +32,7 @@ test("overview notifications open expenses and clear after approval", async ({
     "src",
     "/chibi/saul-approved.webp",
   );
+  await expect(launcher).toHaveAttribute("src", "/chibi/saul-smoking.webp");
   await banner.getByRole("button", { name: "Open bookkeeping" }).click();
   await expect(page.getByRole("heading", { name: "The books." })).toBeVisible();
 });

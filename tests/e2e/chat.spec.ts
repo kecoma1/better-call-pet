@@ -1,22 +1,28 @@
 import { test, expect } from "@playwright/test";
 
-test("sidebar chat preserves drafts and history without a floating launcher", async ({
+test("floating chat expands into persistent history with topic badges and receipt cards", async ({
   page,
 }) => {
   await page.goto("/");
   await expect(
     page.getByRole("heading", { name: "Your books, in good hands." }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Open chat with Saul" }),
-  ).toHaveCount(0);
+  const launcher = page.getByRole("button", { name: "Open chat with Saul" });
+  await expect(launcher).toBeVisible();
+  await expect(launcher.getByRole("img")).toBeVisible();
+  await expect(launcher.getByRole("img")).toHaveAttribute(
+    "src",
+    "/chibi/saul-smoking.webp",
+  );
+  await expect
+    .poll(() =>
+      launcher.getByRole("img").evaluate((img: HTMLImageElement) => img.naturalWidth),
+    )
+    .toBeGreaterThan(0);
   await expect(
     page.getByText("Better call Saul.", { exact: true }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("img", { name: "Saul Goodman smoking a cigar" }),
-  ).toHaveCount(0);
-  await page.getByRole("button", { name: "Chat", exact: true }).click();
+  await launcher.click();
   await page
     .getByRole("textbox", { name: "Message Saul" })
     .fill("What VAT can I reclaim?");
@@ -32,14 +38,7 @@ test("sidebar chat preserves drafts and history without a floating launcher", as
   await page
     .getByRole("textbox", { name: "Message Saul" })
     .fill("Keep this draft");
-  await page.getByRole("button", { name: "Overview", exact: true }).click();
-  await expect(
-    page.getByRole("region", { name: "Chat with Saul" }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Open chat with Saul" }),
-  ).toHaveCount(0);
-  await page.getByRole("button", { name: "Chat", exact: true }).click();
+  await page.getByRole("button", { name: "Open all conversations" }).click();
   await expect(
     page.getByRole("heading", { name: "Let’s talk books." }),
   ).toBeVisible();

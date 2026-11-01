@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import Chat from "../src/components/chat";
 import NotificationsBanner from "../src/components/notifications-banner";
 import Saul from "../src/components/saul";
 import { demoReceipts } from "../src/domain";
@@ -22,26 +23,37 @@ function motionPreference(matches: boolean) {
 
 describe("distinct Saul animations by placement", () => {
   it.each([false, true])(
-    "updates notification artwork with its review state (reduced motion: %s)",
+    "keeps launcher and notification artwork distinct (reduced motion: %s)",
     (reduced) => {
       motionPreference(reduced);
       const props = { onSelect: vi.fn(), onAdd: vi.fn(), onNavigate: vi.fn() };
       const { rerender } = render(
-        <NotificationsBanner {...props} items={demoReceipts} />,
+        <>
+          <Chat live={false} items={demoReceipts} onRefresh={vi.fn()} />
+          <NotificationsBanner {...props} items={demoReceipts} />
+        </>,
       );
       const suffix = reduced ? ".png" : ".webp";
+      const launcher = within(
+        screen.getByRole("button", { name: "Open chat with Saul" }),
+      ).getByRole("img");
+      expect(launcher).toHaveAttribute("src", "/chibi/saul-smoking" + suffix);
       const banner = screen.getByRole("region", { name: "Notifications" });
       expect(within(banner).getByRole("img")).toHaveAttribute(
         "src",
         "/chibi/saul-thinking" + suffix,
       );
       rerender(
-        <NotificationsBanner {...props} items={[]} />,
+        <>
+          <Chat live={false} items={demoReceipts} onRefresh={vi.fn()} />
+          <NotificationsBanner {...props} items={[]} />
+        </>,
       );
       expect(within(banner).getByRole("img")).toHaveAttribute(
         "src",
         "/chibi/saul-approved" + suffix,
       );
+      expect(launcher).toHaveAttribute("src", "/chibi/saul-smoking" + suffix);
     },
   );
 

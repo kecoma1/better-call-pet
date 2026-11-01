@@ -759,6 +759,69 @@ td > [data-slot="badge"]:not(.verdict) {
   width: 4px;
   height: 4px;
 }
+.saul-launcher {
+  position: fixed;
+  bottom: 16px;
+  right: 21px;
+  width: 108px !important;
+  height: 153px !important;
+  padding: 0 !important;
+  z-index: 35;
+  background: none !important;
+  display: block !important;
+  filter: drop-shadow(0 8px 12px var(--background));
+}
+.saul-launcher .saul {
+  width: 108px;
+  height: 143px;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  pointer-events: none;
+}
+.saul-launcher > .online-dot {
+  position: absolute;
+  bottom: 8px;
+  right: 14px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--card);
+}
+.chat-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 23px;
+  width: 380px;
+  height: min(640px, calc(100dvh - 40px));
+  background: var(--card);
+  border: 1px solid var(--input);
+  border-radius: 15px;
+  z-index: 50;
+  box-shadow: 0 16px 70px var(--background);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat-panel > header {
+  padding: 15px 17px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.chat-panel header strong {
+  font-size: 13px;
+  margin-left: 8px;
+}
+.chat-panel header small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted-foreground);
+  margin-top: 4px;
+}
+.chat-panel header button {
+  height: 28px;
+  width: 28px;
+}
 .chat-messages {
   flex: 1;
   overflow: auto;
@@ -802,21 +865,25 @@ td > [data-slot="badge"]:not(.verdict) {
   object-fit: contain;
   margin: -6px 0 -4px 12px;
 }
+.chat-panel > form,
 .chat-page-thread > form {
   padding: 12px 13px 4px;
   display: flex;
   align-items: center;
   gap: 7px;
 }
+.chat-panel > form input,
 .chat-page-thread > form input {
   font-size: 11px;
   border-color: var(--border);
   height: 39px;
 }
+.chat-panel > form button,
 .chat-page-thread > form button {
   height: 35px;
   width: 35px;
 }
+.chat-panel > footer,
 .chat-page-thread > footer {
   text-align: center;
   font-size: 9px;
@@ -833,6 +900,7 @@ td > [data-slot="badge"]:not(.verdict) {
   font-size: 9px;
   height: 28px;
 }
+.chat-panel .error,
 .chat-page-thread .error {
   margin: 8px 14px;
 }
@@ -1605,6 +1673,22 @@ button[data-slot="select-trigger"] {
   .workspace-footer > span:last-child {
     display: none;
   }
+  .saul-launcher {
+    bottom: 12px;
+    right: 13px;
+    width: 89px !important;
+    height: 127px !important;
+  }
+  .saul-launcher .saul {
+    width: 89px;
+    height: 118px;
+  }
+  .chat-panel {
+    width: calc(100% - 24px);
+    right: 12px;
+    bottom: 12px;
+    height: min(650px, calc(100dvh - 24px));
+  }
   .receipts-toolbar {
     flex-direction: column;
   }
@@ -1791,6 +1875,15 @@ button[data-slot="select-trigger"] {
 }
 
 /* Conversation history and compact, server-supplied tool results. */
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.chat-panel header [data-slot="badge"] {
+  margin-top: 7px;
+  font-size: 9px;
+}
 .chat-word {
   animation: chat-word-in 180ms ease-out both;
   animation-delay: var(--word-delay);
