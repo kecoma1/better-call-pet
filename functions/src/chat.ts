@@ -169,6 +169,7 @@ export async function replyToConversation(
   messages: ChatMessage[],
   progress?: ChatProgress,
   signal?: AbortSignal,
+  onTool?: (result: ChatToolResult) => void,
 ): Promise<ChatMessage> {
   const activity: ChatToolResult[] = [];
   const tools = sharedTools(uid).map((t) =>
@@ -192,6 +193,7 @@ export async function replyToConversation(
         const presented = presentToolResult(name, result);
         activity.push(presented);
         await progress?.tool(presented);
+        onTool?.(presented);
         return JSON.stringify(result);
       },
     }),

@@ -12,14 +12,19 @@ All `/api/*` routes except `/api/health` require a Firebase ID token and active 
 | `GET /api/conversations`       | Current member’s newest 100 conversation summaries, without messages.           |
 | `GET /api/conversations/:id`   | An owned `Conversation`, including saved messages and tool cards.               |
 | `POST /api/chat`               | `{conversationId: UUID, requestId: UUID, message}` → `{message, conversation}`. |
-| `POST /api/voice`              | `{sdp, language?: "English" \| "Spanish", messages?: [{role, content}]}` → authenticated NDJSON stream. |
+| `POST /api/voice`              | `{sdp, language?: "English" \| "Spanish", messages?: [{role, content}], toolCards?: boolean}` → authenticated NDJSON stream. |
 | `GET /api/connections`         | Current user's active OAuth connections.                                        |
 | `POST /api/connections/revoke` | `{id}` revokes a connection owned by the caller.                                |
 
 The UI calls expenses “receipts”; API names remain stable while the Firestore collection is `/expenses`.
 
 Voice events are `{type:"connected",sdp}`, `{type:"transcript",role,text,startMs,endMs}`,
-`{type:"working"}`, `{type:"listening"}`, `{type:"error",message}` and `{type:"ended"}`.
+`{type:"working"}`, `{type:"listening"}`, `{type:"tool",id,tool:ChatToolResult}`,
+`{type:"error",message}` and `{type:"ended"}`. Tool snapshots come from successful
+shared tool executions and use the same public schema as normal chat cards; their
+per-call IDs prevent duplicate cards. Clients opt into tool events with `toolCards:true`,
+keeping existing callers compatible. Each delegation exposes at most 12 cards. Speech and cards remain in arrival order in
+the call chat and carry over to the current chat on hang-up.
 `src/lib/voice.ts` validates the shared stream shape. A stream that closes without
 `ended` is a failure. Offers are bounded to 100 KB and history to 16 messages of
 5,000 characters. GPT-Live (`gpt-live-1`, Marin) handles speech; gpt-6-luna handles

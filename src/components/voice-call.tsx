@@ -3,17 +3,15 @@ import { Mic, MicOff, Phone, PhoneOff, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import Saul from "./saul";
-import AnimatedCaption from "./animated-caption";
-import VoiceWorkspace from "./voice-workspace";
-import type { Receipt } from "../domain";
-import { startVoiceCall, type CallInput } from "../services/voice";
+import ChatMessage from "./chat-message";
+import type { ChatMessage as Message } from "../domain";
+import { startVoiceCall } from "../services/voice";
 import { SILENT_CALL_LEVELS } from "../services/voice-audio";
-import { mergeCallCaption, type CallCaption } from "../lib/voice";
+import { callMessages, mergeCallEntry, type CallCaption, type CallEntry } from "../lib/voice";
 
-export default function VoiceCall({ live, disabled, messages, onEnd, receipts = [], onRefresh }: {
-  live: boolean; disabled: boolean; messages: CallInput["messages"];
-  onEnd: (captions: CallCaption[]) => void;
-  receipts?: Receipt[];
+export default function VoiceCall({ live, disabled, messages, onEnd, onRefresh }: {
+  live: boolean; disabled: boolean; messages: Message[];
+  onEnd: (captions: CallCaption[], messages?: Message[]) => void;
   onRefresh?: () => Promise<void>;
 }) {
   const [active, setActive] = useState(false);
@@ -22,7 +20,7 @@ export default function VoiceCall({ live, disabled, messages, onEnd, receipts = 
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(0);
-  const [captions, setCaptions] = useState<CallCaption[]>([]);
+  const [entries, setEntries] = useState<CallEntry[]>([]);
   const [levels, setLevels] = useState(SILENT_CALL_LEVELS);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState("");
@@ -32,6 +30,13 @@ export default function VoiceCall({ live, disabled, messages, onEnd, receipts = 
   const mounted = useRef(true);
   const returnFocus = useRef<HTMLElement | null>(null);
   const endButton = useRef<HTMLButtonElement | null>(null);
+  const history = useRef<Message[]>([]);
+  const bottom = useRef<HTMLDivElement | null>(null);
+  const follow = useRef(true);
+  useEffect(() => {
+    const log = bottom.current?.parentElement;
+    if (follow.current && log) log.scrollTop = log.scrollHeight;
+  }, [entries, active]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; abort.current?.abort(); }; }, []);
   useEffect(() => { if (!live) abort.current?.abort(); }, [live]);
   useEffect(() => {
@@ -63,12 +68,14 @@ export default function VoiceCall({ live, disabled, messages, onEnd, receipts = 
     const controller = new AbortController();
     abort.current = controller;
     returnFocus.current = document.activeElement as HTMLElement | null;
-    let transcript: CallCaption[] = [];
+    let timeline: CallEntry[] = [];
+    history.current = [...messages];
+    follow.current = true;
     let checkingBooks = false;
     setRefreshError("");
-    setActive(true); setReady(false); setMuted(false); setWorking(false); setError(""); setSeconds(0); setCaptions([]); setLevels(SILENT_CALL_LEVELS);
+    setActive(true); setReady(false); setMuted(false); setWorking(false); setError(""); setSeconds(0); setEntries([]); setLevels(SILENT_CALL_LEVELS);
     try {
-      await startVoiceCall({ messages: messages.slice(-16), language: navigator.language.startsWith("es") ? "Spanish" : "English" }, (event) => {
+      await startVoiceCall({ messages: messages.filter((message) => message.content.trim()).slice(-16).map(({ role, content }) => ({ role, content: content.slice(-5000) })), language: navigator.language.startsWith("es") ? "Spanish" : "English" }, (event) => {
         if (!mounted.current || controller.signal.aborted) return;
         if (event.type === "ready") setReady(true);
         if (event.type === "working") { checkingBooks = true; setWorking(true); }
@@ -76,17 +83,18 @@ export default function VoiceCall({ live, disabled, messages, onEnd, receipts = 
           setWorking(false);
           if (checkingBooks) { checkingBooks = false; void refreshWorkspace(controller); }
         }
-        if (event.type === "transcript") { transcript = mergeCallCaption(transcript, event); setCaptions(transcript); }
+        if (event.type === "transcript" || event.type === "tool") { timeline = mergeCallEntry(timeline, event); setEntries(timeline); }
       }, controller.signal, (control) => { mute.current = control; }, (value) => { if (mounted.current && !controller.signal.aborted) setLevels(value); });
     } catch (e) {
       if (!controller.signal.aborted && mounted.current) setError(e instanceof Error ? e.message : "Saul could not start the call. Please try again.");
     } finally {
       abort.current = null; mute.current = null;
-      if (mounted.current) { setActive(false); setReady(false); setLevels(SILENT_CALL_LEVELS); onEnd(transcript); }
+      if (mounted.current) {
+        setActive(false); setReady(false); setLevels(SILENT_CALL_LEVELS);
+        onEnd(timeline.flatMap((entry) => entry.type === "transcript" ? [entry] : []), callMessages(timeline));
+      }
     }
   }
-  const latestUser = captions.filter((c) => c.role === "user").at(-1);
-  const latestAssistant = captions.filter((c) => c.role === "assistant").at(-1);
   const close = () => { if (active) abort.current?.abort(); else setError(""); };
   return <>
     <Button type="button" variant="ghost" size="icon" aria-label="Call Saul" title={live ? "Call Saul" : "Sign in to call Saul"}
@@ -101,24 +109,28 @@ export default function VoiceCall({ live, disabled, messages, onEnd, receipts = 
         </DialogHeader>
         <p className="voice-status" role="status">{error ? "Call ended" : !ready ? "Connecting to Saul…" : working ? "Checking your books…" : muted ? "Microphone muted" : "I’m listening."}
           {ready && <span>{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span>}</p>
-        <div className="voice-body">
-          <div className="voice-conversation">
-            <div className="voice-scene" aria-hidden="true">
-              <div className="voice-halo" style={{ "--voice-scale": 1 + Math.max(...levels.microphone) * 0.12 } as CSSProperties} />
-              <Saul state="phone" className="voice-saul" />
-              <div className="voice-bars">{levels.assistant.map((value, i) => <span key={i} style={{ height: `${4 + value * 34}px` }} />)}</div>
-            </div>
-            <div className="voice-captions" role="region" aria-label="Live captions" tabIndex={0}>
-              <div aria-live="polite" aria-atomic="false">
-                {latestUser && <p className="voice-user"><small>You</small><AnimatedCaption key={`user-${latestUser.startMs}`} text={latestUser.text} /></p>}
-                {latestAssistant && <p className="voice-assistant"><small>Saul</small><AnimatedCaption key={`assistant-${latestAssistant.startMs}`} text={latestAssistant.text} /></p>}
-                {!captions.length && !error && <p className="voice-placeholder">{ready ? "Go ahead. What are we looking at?" : "Picking up the phone…"}</p>}
-                {error && <p role="alert" className="error">{error}</p>}
-              </div>
-            </div>
-          </div>
-          <VoiceWorkspace receipts={receipts} refreshing={refreshing} error={refreshError}
-            onRefresh={active && onRefresh ? () => void refreshWorkspace() : undefined} />
+        <div className="voice-scene" aria-hidden="true">
+          <div className="voice-halo" style={{ "--voice-scale": 1 + Math.max(...levels.microphone) * 0.12 } as CSSProperties} />
+          <Saul state="phone" className="voice-saul" />
+          <div className="voice-bars">{levels.assistant.map((value, i) => <span key={i} style={{ height: `${4 + value * 34}px` }} />)}</div>
+        </div>
+        <div className="voice-captions chat-messages" role="region" aria-label="Live captions" tabIndex={0}
+          aria-live="polite" aria-relevant="additions text" onScroll={(event) => {
+            const log = event.currentTarget;
+            follow.current = log.scrollHeight - log.scrollTop - log.clientHeight < 64;
+          }}>
+          {history.current.map((message, index) => <ChatMessage key={`history-${index}`} message={message} />)}
+          {callMessages(entries).map((message, index) => {
+            const entry = entries[index];
+            return <ChatMessage key={entry.type === "tool" ? entry.id : `${entry.role}-${entry.startMs}`} message={message} />;
+          })}
+          {!entries.length && !error && <p className="voice-placeholder">{ready ? "Go ahead. What are we looking at?" : "Picking up the phone…"}</p>}
+          {error && <p role="alert" className="error">{error}</p>}
+          {refreshError && <div className="voice-refresh-error">
+            <p className="error" role="alert">{refreshError}</p>
+            {active && <Button type="button" variant="outline" size="sm" disabled={refreshing} onClick={() => void refreshWorkspace()}>Refresh records</Button>}
+          </div>}
+          <div ref={bottom} />
         </div>
         <div className="voice-controls">
           {active && ready && <Button type="button" variant="outline" size="icon" aria-label={muted ? "Unmute microphone" : "Mute microphone"}

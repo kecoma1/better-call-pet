@@ -1,4 +1,12 @@
 import { captionSchema, type CallCaption } from "../../src/lib/voice.js";
+import { z } from "zod";
+
+export const voiceRequestSchema = z.object({
+  sdp: z.string().startsWith("v=0").max(100000),
+  language: z.enum(["English", "Spanish"]).default("English"),
+  toolCards: z.boolean().default(false),
+  messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(5000) })).max(16).default([]),
+});
 
 export type LiveEvent = Record<string, unknown> & { type: string };
 export function readLiveEvent(value: unknown): LiveEvent | null {

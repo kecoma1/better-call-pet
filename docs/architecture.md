@@ -27,12 +27,13 @@ The call screen adapts AVEC's 500 ms opacity/vertical text entrances and separat
 microphone/assistant audio levels. Reduced motion uses a still and disables reactive
 motion. Voice tools retain the existing draft-only accounting boundaries.
 
-The compact phone animation shares the call dialog with workspace cards: loaded
-receipt count, review and posted counts, posted recoverable VAT, and the four most
-recent receipts. These cards use the shared workspace data, refresh after delegated
-work finishes, and can be refreshed manually without ending the call. A failed
-refresh keeps the last records visible with a retry message. On small screens the
-content scrolls while call controls remain visible.
+The compact phone animation sits above a single chat column. The call reuses the
+normal chat messages and tool cards, retaining earlier turns while new speech and
+verified tool results arrive in order. Cards appear only for successful tool
+executions, rather than showing an always-visible workspace summary. The server
+streams these results as each tool completes. On hang-up, messages and cards stay
+in the current chat's memory. The chat scrolls while Saul and call controls stay
+visible; reading earlier messages pauses automatic scrolling.
 
 
 Clicking an expense row (overview or receipts) or a ledger row opens the shared `ReceiptSheet` on the right. Rows support Enter/Space and restore keyboard focus when dismissed. Creating a new expense continues to use `ReceiptDialog`; accounting actions and VAT restrictions are shared with the existing posting service.

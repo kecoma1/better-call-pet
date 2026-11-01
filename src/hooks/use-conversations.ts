@@ -214,8 +214,9 @@ export function useConversations(
       }
     }
   }
-  function appendVoiceTranscript(captions: CallCaption[]) {
-    const transcript = captions.filter((c) => c.text.trim()).map((c) => ({ role: c.role, content: c.text }));
+  function appendVoiceTranscript(captions: CallCaption[], callMessages?: ChatMessage[]) {
+    const transcript = callMessages?.filter((message) => message.content.trim() || message.tools?.length)
+      ?? captions.filter((c) => c.text.trim()).map((c) => ({ role: c.role, content: c.text }));
     if (transcript.length) setVoiceSegments((previous) => [...previous, { after: active?.messages.length ?? 0, messages: transcript }].slice(-24));
     if (live) void onRefresh().catch(() => setError("Workspace data could not refresh after the call. Please try again."));
   }
@@ -226,7 +227,6 @@ export function useConversations(
     for (const segment of voiceSegments) if (segment.after === i) messages.push(...segment.messages);
   }
   return {
-    receipts: items,
     refreshWorkspace: onRefresh,
     conversations,
     active,

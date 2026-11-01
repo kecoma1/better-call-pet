@@ -56,6 +56,18 @@ function send(text: string) {
   fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 }
 describe("ephemeral voice captions in the shared chat", () => {
+  it("retains tool cards with spoken messages after hanging up", () => {
+    const { result } = renderHook(() => useConversations(false, [], vi.fn()));
+    const tools = [{ name: "list_receipts" as const, receipts: [], receiptCount: 0 }];
+    act(() => result.current.appendVoiceTranscript([], [
+      { role: "user", content: "Find my receipts." },
+      { role: "assistant", content: "", tools },
+      { role: "assistant", content: "No receipts found." },
+    ]));
+    expect(result.current.messages[1].tools).toEqual(tools);
+    expect(result.current.messages.at(-1)?.content).toBe("No receipts found.");
+    expect(result.current.conversations).toHaveLength(0);
+  });
   it("keeps calls in chronological order alongside text without saving a false history entry", async () => {
     const { result } = renderHook(() => useConversations(false, demoReceipts, vi.fn()));
     act(() => result.current.appendVoiceTranscript([
