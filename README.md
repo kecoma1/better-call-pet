@@ -1,5 +1,7 @@
 # Better Call Pet
 
+**Demo video (71 s):** https://youtu.be/36Su4JhddI0
+
 Saul supports internal browser voice calls from the chat's phone button: live
 captions, mute/unmute, hang-up and a dedicated phone animation. Calls use GPT-Live
 with the existing gpt-6-luna agent and server tools. Deploy Functions and Hosting
@@ -140,7 +142,7 @@ Google sign-in must be enabled, the hosting domain authorised, Firestore created
 4. Show blocked VAT on client entertainment.
 5. Open Saul's chat, then the OAuth connection guide.
 
-No real invoices, account identifiers or secrets in recordings. A demo video is a follow-up deliverable, not yet included in this foundation.
+No real invoices, account identifiers or secrets in recordings. The demo video is on YouTube at https://youtu.be/36Su4JhddI0; the app also plays it from `public/media/better-call-pet-demo.mp4` through the “Watch the demo” button.
 
 ## Credits and sources
 

@@ -12,6 +12,7 @@ import { conversationTopics, type ConversationTopic } from "../domain";
 import type { ConversationsWorkspace } from "../hooks/use-conversations";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import DemoVideoButton from "../components/demo-video-button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import {
@@ -215,6 +216,7 @@ export default function ChatPage({
             </div>
             {w.active && <Badge variant="outline">{w.active.topic}</Badge>}
           </div>
+          <DemoVideoButton />
         </header>
         <ChatThread workspace={w} live={live} onOpenReceipt={onOpenReceipt} />
       </section>

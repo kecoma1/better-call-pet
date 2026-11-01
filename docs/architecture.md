@@ -69,6 +69,8 @@ Use isolated branches/worktrees for simultaneous work. `App.tsx`, `style.css`, `
 
 ## Media contract
 
+Demo video: drop the recorded file at `public/media/better-call-pet-demo.mp4` (path set by `DEMO_VIDEO_SRC` in `src/lib/demo-video.ts`). On load the app sends one `HEAD` request (`src/services/demo-video.ts`) and requires an OK response with a `video/*` content type, because the SPA fallback answers missing files with `index.html`. Only then does the glowing "Watch the demo" button appear, in the chat thread header and the accounting topbar, opening a dialog with a native 16:9 player. Without the file nothing renders.
+
 Chat loading and pending replies use `saul-desk.webm`: a silent transparent Seedance loop showing Saul writing and reading cases at his desk through five comic pose beats. The clip is six seconds at 15 fps, 416 × 554, with matching first/last frames. `saul-desk.webp` is the infinite animated fallback and `saul-desk.png` is the matching reduced-motion/error still. Video failures are scoped to the source, so a failed scene cannot disable a different loop. Generation details and the exact prompt are in `marketing/chibi/desk-loop.md` and `marketing/chibi/prompts/saul-desk.txt`.
 
 The settings connection scene uses `saul-seated.webm`, a silent transparent VP9 video with a six-second smoking loop. Only the cigar hand and smoke move; the seated lower body stays fixed on the Dots. `saul-seated.webp` is the animated fallback if video playback fails, and `saul-seated.png` is the matching still for reduced motion or failed media. The scene scales as one composition, and the Dots stay stationary on hover so Saul keeps his seat.
