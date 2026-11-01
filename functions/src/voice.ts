@@ -1,21 +1,14 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
 import { info, warn } from "firebase-functions/logger";
 import { runSaul } from "./agent.js";
 import { aiQuota } from "./tools.js";
 import { requireInternal } from "./oauth.js";
 import { mergeCallCaption, type CallCaption, type VoiceEvent } from "../../src/lib/voice.js";
-import { readTranscript, liveDelegationId, liveResultChunks } from "./voice-protocol.js";
+import { readTranscript, liveDelegationId, liveResultChunks, voiceRequestSchema } from "./voice-protocol.js";
 import { createLiveSession, attachLiveSession, closeLiveSession, type LiveConnection } from "./voice-transport.js";
 
-const payload = z.object({
-  sdp: z.string().startsWith("v=0").max(100000),
-  language: z.enum(["English", "Spanish"]).default("English"),
-  messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(5000) })).max(16).default([]),
-});
-
 export async function voiceCall(q: Request, r: Response) {
-  const input = payload.parse(q.body);
+  const input = voiceRequestSchema.parse(q.body);
   await aiQuota(r.locals.uid);
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw Error("Voice calls are not configured on the server.");
@@ -80,7 +73,10 @@ export async function voiceCall(q: Request, r: Response) {
           try {
             await requireInternal(uid);
             await aiQuota(uid);
-            const message = await runSaul(uid, history, task.signal);
+            let toolIndex = 0;
+            const message = await runSaul(uid, history, task.signal, (tool) => {
+              if (input.toolCards && !abort.signal.aborted && toolIndex < 12) emit({ type: "tool", id: `${id}-${toolIndex++}`, tool });
+            });
             if (abort.signal.aborted) return;
             const currentResult = current === revision && !task.signal.aborted;
             if (currentResult && pendingId === id) pendingId = null;

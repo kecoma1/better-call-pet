@@ -1,7 +1,16 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
 import {createLiveSession, liveSessionConfig} from "../src/voice-transport";
+import {eventDemoInstructions} from "../src/saul-harness";
 afterEach(() => vi.unstubAllGlobals());
 describe("Live provider request metadata", () => {
+  it("shares the event demo permission with text while delegating actual workspace changes", () => {
+    const config = liveSessionConfig("gpt-live-1", "Spanish");
+    expect(config.instructions).toContain(eventDemoInstructions);
+    expect(config.instructions).toContain("including fictional examples and demo simulations");
+    expect(config.instructions).not.toContain("Never invent records");
+    expect(config.instructions).not.toContain("Ask for missing facts");
+    expect(config.delegation).toEqual({type: "client"});
+  });
   it("returns the transport request ID and uses the same audited session configuration", async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       session: {id: "session-1"}, transport: {type: "webrtc", sdp: "answer"},

@@ -117,7 +117,7 @@ export async function startVoiceCall(input: CallInput, onEvent: (event: CallEven
     const response = await Promise.race([lost, fetch(url, {
       method: "POST", signal: transport.signal,
       headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ ...input, sdp: offer.sdp }),
+      body: JSON.stringify({ ...input, sdp: offer.sdp, toolCards: true }),
     })]);
     if (!response.ok) {
       const body = await response.json().catch(() => null);

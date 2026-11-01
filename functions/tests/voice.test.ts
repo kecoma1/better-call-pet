@@ -74,4 +74,26 @@ describe("trusted voice backend", () => {
     expect(state.close).toHaveBeenCalledWith("test-key", "session-test");
     expect(r.json.mock.calls[0][0].error).toContain("could not start");
   });
+  it("streams verified tool cards before the agent finishes its spoken reply", async () => {
+    vi.useFakeTimers();
+    let event!: (event: LiveEvent) => void;
+    let finish!: (message: string) => void;
+    const tool = { name: "create_receipt", receipts: [{ id: "fixture-receipt", vendor: "Fixture supplier", netPence: 1000, vatPence: 200, status: "review" }] };
+    state.attach.mockImplementation(async (_key, _id, receive) => { event = receive; return { send: vi.fn(), disconnect: vi.fn() }; });
+    state.run.mockImplementation((_uid, _history, _signal, onTool) => {
+      onTool(tool);
+      return new Promise((resolve) => { finish = resolve; });
+    });
+    const r = response(), call = voiceCall({ body: { sdp: "v=0", messages: [], toolCards: true } } as any, r);
+    await vi.advanceTimersByTimeAsync(0);
+    event({ type: "session.input_transcript.delta", delta: "Save this receipt.", start_ms: 0, end_ms: 500 });
+    event({ type: "session.delegation.created", delegation: { id: "draft-1", target: "client" } });
+    await vi.advanceTimersByTimeAsync(800);
+    expect(r.events).toContainEqual({ type: "tool", id: "draft-1-0", tool });
+    expect(r.events.some((value: any) => value.type === "listening")).toBe(false);
+    finish("Your draft is ready for review.");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(r.events.at(-1)).toEqual({ type: "listening" });
+    r.emit("close"); await call;
+  });
 });

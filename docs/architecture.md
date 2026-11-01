@@ -27,12 +27,13 @@ The call screen adapts AVEC's 500 ms opacity/vertical text entrances and separat
 microphone/assistant audio levels. Reduced motion uses a still and disables reactive
 motion. Voice tools retain the existing draft-only accounting boundaries.
 
-The compact phone animation shares the call dialog with workspace cards: loaded
-receipt count, review and posted counts, posted recoverable VAT, and the four most
-recent receipts. These cards use the shared workspace data, refresh after delegated
-work finishes, and can be refreshed manually without ending the call. A failed
-refresh keeps the last records visible with a retry message. On small screens the
-content scrolls while call controls remain visible.
+The compact phone animation sits above a single chat column. The call reuses the
+normal chat messages and tool cards, retaining earlier turns while new speech and
+verified tool results arrive in order. Cards appear only for successful tool
+executions, rather than showing an always-visible workspace summary. The server
+streams these results as each tool completes. On hang-up, messages and cards stay
+in the current chat's memory. The chat scrolls while Saul and call controls stay
+visible; reading earlier messages pauses automatic scrolling.
 
 
 Clicking an expense row (overview or receipts) or a ledger row opens the shared `ReceiptSheet` on the right. Rows support Enter/Space and restore keyboard focus when dismissed. Creating a new expense continues to use `ReceiptDialog`; accounting actions and VAT restrictions are shared with the existing posting service.
@@ -75,6 +76,9 @@ Chat loading and pending replies use `saul-desk.webm`: a silent transparent Seed
 The settings connection scene uses `saul-seated.webm`, a silent transparent VP9 video with a six-second smoking loop. Only the cigar hand and smoke move; the seated lower body stays fixed on the Dots. `saul-seated.webp` is the animated fallback if video playback fails, and `saul-seated.png` is the matching still for reduced motion or failed media. The scene scales as one composition, and the Dots stay stationary on hover so Saul keeps his seat.
 
 `public/chibi/saul-{idle,smoking,thinking,approved,pacing}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. The floating chat launcher explicitly uses `smoking`, the relaxed cigar-only clip. The launcher shows only Saul’s animated icon and status dot, without the “Better call Saul” callout. The notifications banner uses `thinking` for pending work and `approved` when caught up, so it never shares the launcher's animation. Inside chat, Saul uses the `pacing` animation in the empty state; messages occupy the conversation area once a question is sent. Each state has its own matching PNG for reduced motion or failed animation loads; errors are scoped to the failed animation. The HTML loader randomly chooses PNG states, with an idle fallback.
+
+Once a normal chat has a message (including the first pending question), a smaller
+pacing Saul appears directly above the textarea, outside the scrolling history.
 
 The voice scene uses its own `saul-phone.webp`: a six-second transparent loop of
 Saul talking on a phone, taking short steps left and right. `saul-phone.png` is the

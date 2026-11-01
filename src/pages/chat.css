@@ -180,6 +180,18 @@ main.chat-main {
   padding: 12px 28px 0;
   flex-shrink: 0;
 }
+.chat-composer-scene {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.chat-composer-saul {
+  display: block;
+  height: 112px;
+  width: auto;
+  object-fit: contain;
+}
 .chat-composer textarea {
   background: var(--card);
   min-height: 56px;
@@ -331,6 +343,9 @@ main.chat-main {
   }
   .chat-empty-saul {
     height: min(32dvh, 240px);
+  }
+  .chat-composer-saul {
+    height: 88px;
   }
   .chat-empty-state > p:last-child {
     max-width: 270px;

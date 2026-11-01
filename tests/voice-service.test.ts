@@ -43,6 +43,7 @@ describe("voice stream and lifecycle", () => {
     await startVoiceCall(input, vi.fn(), new AbortController().signal, vi.fn(), vi.fn());
     expect(fetch.mock.calls[0][0]).toBe("/api/voice");
     expect(fetch.mock.calls[0][1].headers.Authorization).toBe("Bearer test-firebase-token");
+    expect(JSON.parse(fetch.mock.calls[0][1].body).toolCards).toBe(true);
     expect(b.track.stop).toHaveBeenCalledOnce(); expect(b.closePeer).toHaveBeenCalledOnce(); expect(b.closeChannel).toHaveBeenCalledOnce(); expect(b.pause).toHaveBeenCalledOnce();
     expect(b.send).toHaveBeenCalledWith(JSON.stringify({ type: "session.close" }));
   });

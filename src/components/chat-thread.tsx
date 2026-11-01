@@ -109,6 +109,11 @@ export default function ChatThread({
           {w.error}
         </p>
       )}
+      {(messages.length > 0 || !!w.pending) && (
+        <div className="chat-composer-scene" aria-hidden="true">
+          <Saul state="pacing" className="chat-composer-saul" />
+        </div>
+      )}
       <form
         className="chat-composer"
         onSubmit={(e) => {
@@ -139,7 +144,7 @@ export default function ChatThread({
           }}
         />
         <VoiceCall live={live} disabled={w.busy || w.loading} messages={messages} onEnd={w.appendVoiceTranscript}
-          receipts={w.receipts} onRefresh={w.refreshWorkspace} />
+          onRefresh={w.refreshWorkspace} />
         <Button
           size="icon"
           type="submit"

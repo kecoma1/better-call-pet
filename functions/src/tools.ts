@@ -228,7 +228,7 @@ export function sharedTools(uid: string) {
     },
     {
       name: "save_company",
-      description: "Save company configuration on explicit user request.",
+      description: "Save company configuration on explicit user request. Demo/sample companies are allowed: use a name beginning with DEMO and leave unknown company, tax and VAT identifiers blank; do not demand real legal details for fictional examples.",
       schema: companySchema,
       execute: async (input: unknown) => {
         const c = companySchema.parse(input);

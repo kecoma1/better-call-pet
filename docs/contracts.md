@@ -12,14 +12,19 @@ All `/api/*` routes except `/api/health` require a Firebase ID token and active 
 | `GET /api/conversations`       | Current member’s newest 100 conversation summaries, without messages.           |
 | `GET /api/conversations/:id`   | An owned `Conversation`, including saved messages and tool cards.               |
 | `POST /api/chat`               | `{conversationId: UUID, requestId: UUID, message}` → `{message, conversation}`. |
-| `POST /api/voice`              | `{sdp, language?: "English" \| "Spanish", messages?: [{role, content}]}` → authenticated NDJSON stream. |
+| `POST /api/voice`              | `{sdp, language?: "English" \| "Spanish", messages?: [{role, content}], toolCards?: boolean}` → authenticated NDJSON stream. |
 | `GET /api/connections`         | Current user's active OAuth connections.                                        |
 | `POST /api/connections/revoke` | `{id}` revokes a connection owned by the caller.                                |
 
 The UI calls expenses “receipts”; API names remain stable while the Firestore collection is `/expenses`.
 
 Voice events are `{type:"connected",sdp}`, `{type:"transcript",role,text,startMs,endMs}`,
-`{type:"working"}`, `{type:"listening"}`, `{type:"error",message}` and `{type:"ended"}`.
+`{type:"working"}`, `{type:"listening"}`, `{type:"tool",id,tool:ChatToolResult}`,
+`{type:"error",message}` and `{type:"ended"}`. Tool snapshots come from successful
+shared tool executions and use the same public schema as normal chat cards; their
+per-call IDs prevent duplicate cards. Clients opt into tool events with `toolCards:true`,
+keeping existing callers compatible. Each delegation exposes at most 12 cards. Speech and cards remain in arrival order in
+the call chat and carry over to the current chat on hang-up.
 `src/lib/voice.ts` validates the shared stream shape. A stream that closes without
 `ended` is a failure. Offers are bounded to 100 KB and history to 16 messages of
 5,000 characters. GPT-Live (`gpt-live-1`, Marin) handles speech; gpt-6-luna handles
@@ -30,7 +35,7 @@ provider storage is disabled (`store: false`). There is no telephone/PSTN dialin
 
 `sharedTools(uid)` provides `list_receipts`, `get_company`, `create_receipt`, `save_company`. The first two require MCP `accounts:read`; mutations require `receipts:write`. Agent-created receipts remain drafts. There is no post/submit/payment tool.
 
-The event harness permits explicitly requested fake/random/sample receipts. Saul invents clearly fictional inputs, labels notes `SYNTHETIC TEST DATA`, sets `validInvoice=false`, and creates actual review drafts through the same shared tool (three by default, at most five per reply). This permission applies to text and delegated voice; real purchase evidence and completed actions are never fabricated. Decisions response IDs are optional: absent IDs are omitted from the stored VAT decision, never written as `undefined`. Malformed answers fail before expense creation.
+The event harness permits requested fake/random/sample/demo companies, receipts, amounts and hypothetical accounting scenarios without demanding real invoices or legal identifiers. `eventDemoInstructions` is shared by text and the voice session, so the voice layer delegates demo requests instead of refusing them. Fictional saved company names start with `DEMO`; unknown legal/tax identifiers remain blank. For receipts, Saul labels notes `SYNTHETIC TEST DATA`, sets `validInvoice=false`, and creates actual review drafts through the same shared tool (three by default, at most five per reply). Illustrative answers do not mutate data. Unsupported filings/payments/postings may be described as clearly labelled simulations; actual workspace data and completed actions still come from tools. Decisions response IDs are optional: absent IDs are omitted from the stored VAT decision, never written as `undefined`. Malformed answers fail before expense creation.
 
 `npm run test:tools` runs isolated backend tool and chat tests without a browser or frontend setup. The Firestore adapter rejects undefined values and applies transaction writes atomically; the chat integration suite uses the real Agents SDK with an isolated model provider.
 

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mock = vi.hoisted(() => ({ start: vi.fn() }));
 vi.mock("../src/services/voice", () => ({ startVoiceCall: mock.start }));
@@ -6,11 +6,51 @@ import VoiceCall from "../src/components/voice-call";
 
 import AnimatedCaption from "../src/components/animated-caption";
 import type { CallEvent } from "../src/services/voice";
-import { demoReceipts } from "../src/domain";
 
 beforeEach(() => { mock.start.mockReset(); });
 describe("Saul calls", () => {
-  it("refreshes cards after delegated work and keeps the call open after a refresh failure", async () => {
+  it("keeps chat turns and adds real cards beneath them as tools complete", async () => {
+    let emit!: (event: CallEvent) => void;
+    mock.start.mockImplementation((_input, receive, signal) => {
+      emit = receive;
+      return new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve()));
+    });
+    const onEnd = vi.fn();
+    render(<VoiceCall live disabled={false} messages={[{ role: "assistant", content: "Previous chat message." }]} onEnd={onEnd} />);
+    fireEvent.click(screen.getByRole("button", { name: "Call Saul" }));
+    const chat = screen.getByRole("region", { name: "Live captions" });
+    expect(chat).toHaveTextContent("Previous chat message.");
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(screen.queryByText("Receipts loaded")).not.toBeInTheDocument();
+    const tool = { name: "create_receipt" as const, receipts: [{ id: "receipt-1", vendor: "Fixture supplier", netPence: 1000, vatPence: 200, status: "review" as const }] };
+    act(() => {
+      emit({ type: "ready" });
+      emit({ type: "transcript", role: "user", text: "Add this receipt.", startMs: 0, endMs: 500 });
+      emit({ type: "transcript", role: "assistant", text: "Let me save it.", startMs: 600, endMs: 1000 });
+      emit({ type: "tool", id: "delegation-1-0", tool });
+    });
+    const articles = within(chat).getAllByRole("article");
+    expect(articles.map((article) => article.textContent)).toEqual([
+      "Previous chat message.", "Add this receipt.", "Let me save it.",
+      expect.stringContaining("Receipt draft · awaiting review"),
+    ]);
+    expect(chat).toHaveTextContent("Fixture supplier");
+    expect(chat).toHaveTextContent("£12.00");
+    act(() => {
+      emit({ type: "tool", id: "delegation-1-0", tool });
+      emit({ type: "transcript", role: "user", text: "What next?", startMs: 3000, endMs: 3500 });
+      emit({ type: "transcript", role: "assistant", text: "Review the draft.", startMs: 4000, endMs: 4500 });
+    });
+    expect(within(chat).getAllByRole("article")).toHaveLength(6);
+    expect(chat).toHaveTextContent("Let me save it.");
+    expect(within(chat).getAllByText("Receipt draft · awaiting review")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "End call" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(onEnd.mock.calls[0][1][2].tools).toEqual([tool]);
+    expect(onEnd.mock.calls[0][1].at(-1).content).toBe("Review the draft.");
+  });
+
+  it("keeps the call and its chat open after a workspace refresh failure", async () => {
     let emit!: (event: CallEvent) => void;
     mock.start.mockImplementation((_input, receive, signal) => {
       emit = receive;
@@ -18,7 +58,7 @@ describe("Saul calls", () => {
     });
     const onRefresh = vi.fn().mockRejectedValueOnce(Error("Offline")).mockResolvedValue(undefined);
     const onEnd = vi.fn();
-    const { rerender } = render(<VoiceCall live disabled={false} messages={[]} receipts={demoReceipts} onRefresh={onRefresh} onEnd={onEnd} />);
+    render(<VoiceCall live disabled={false} messages={[]} onRefresh={onRefresh} onEnd={onEnd} />);
     fireEvent.click(screen.getByRole("button", { name: "Call Saul" }));
     expect(screen.getByRole("button", { name: "End call" })).toHaveFocus();
     act(() => { emit({ type: "ready" }); emit({ type: "listening" }); });
@@ -28,13 +68,9 @@ describe("Saul calls", () => {
     act(() => { emit({ type: "listening" }); });
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not update your records.");
     expect(screen.getByRole("button", { name: "End call" })).toBeVisible();
-    expect(screen.getByText("Paper & Co.")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh records" }));
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
     expect(onRefresh).toHaveBeenCalledTimes(2);
-    rerender(<VoiceCall live disabled={false} messages={[]} receipts={[...demoReceipts, { ...demoReceipts[0], id: "new-receipt", vendor: "New supplier", createdAt: "2026-11-02T12:00:00Z" }]} onRefresh={onRefresh} onEnd={onEnd} />);
-    expect(screen.getByText("New supplier")).toBeVisible();
-    expect(screen.getByRole("complementary")).toHaveTextContent("Receipts loaded4");
     fireEvent.click(screen.getByRole("button", { name: "End call" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });

@@ -23,3 +23,13 @@ it("does not mutate after cancellation during the authorization check", async ()
   await expect(runSaul("member", [{ role: "user", content: "My company?" }], abort.signal)).rejects.toThrow();
   expect(state.execute).not.toHaveBeenCalled();
 });
+it("publishes only the public card from a successful shared tool", async () => {
+  state.execute.mockResolvedValue({ name: "Fixture LTD", vatRegistered: true, yearEnd: "2027-03-31", utr: "private-fixture" });
+  const onTool = vi.fn();
+  await runSaul("member", [{ role: "user", content: "My company?" }], undefined, onTool);
+  expect(onTool).toHaveBeenCalledWith({ name: "get_company", company: { name: "Fixture LTD", vatRegistered: true, yearEnd: "2027-03-31" } });
+  expect(JSON.stringify(onTool.mock.calls)).not.toContain("private-fixture");
+  onTool.mockClear(); state.execute.mockRejectedValue(Error("Unavailable"));
+  await expect(runSaul("member", [{ role: "user", content: "My company?" }], undefined, onTool)).rejects.toThrow();
+  expect(onTool).not.toHaveBeenCalled();
+});
