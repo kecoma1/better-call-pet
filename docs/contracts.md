@@ -12,10 +12,21 @@ All `/api/*` routes except `/api/health` require a Firebase ID token and active 
 | `GET /api/conversations`       | Current member’s newest 100 conversation summaries, without messages.           |
 | `GET /api/conversations/:id`   | An owned `Conversation`, including saved messages and tool cards.               |
 | `POST /api/chat`               | `{conversationId: UUID, requestId: UUID, message}` → `{message, conversation}`. |
+| `POST /api/voice`              | `{sdp, language?: "English" \| "Spanish", messages?: [{role, content}]}` → authenticated NDJSON stream. |
 | `GET /api/connections`         | Current user's active OAuth connections.                                        |
 | `POST /api/connections/revoke` | `{id}` revokes a connection owned by the caller.                                |
 
 The UI calls expenses “receipts”; API names remain stable while the Firestore collection is `/expenses`.
+
+Voice events are `{type:"connected",sdp}`, `{type:"transcript",role,text,startMs,endMs}`,
+`{type:"working"}`, `{type:"listening"}`, `{type:"error",message}` and `{type:"ended"}`.
+`src/lib/voice.ts` validates the shared stream shape. A stream that closes without
+`ended` is a failure. Offers are bounded to 100 KB and history to 16 messages of
+5,000 characters. GPT-Live (`gpt-live-1`, Marin) handles speech; gpt-6-luna handles
+delegated accounting requests through the same shared agent as text. No separate
+voice business tools or posting permissions exist. Session creation and each agent
+delegation consume the existing server AI quota. Transcripts are ephemeral and
+provider storage is disabled (`store: false`). There is no telephone/PSTN dialing.
 
 `sharedTools(uid)` provides `list_receipts`, `get_company`, `create_receipt`, `save_company`. The first two require MCP `accounts:read`; mutations require `receipts:write`. Agent-created receipts remain drafts. There is no post/submit/payment tool.
 

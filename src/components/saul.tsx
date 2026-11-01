@@ -12,7 +12,7 @@ export default function Saul({
   state = "idle",
   className = "",
 }: {
-  state?: "idle" | "smoking" | "thinking" | "approved" | "seated" | "pacing";
+  state?: "idle" | "smoking" | "thinking" | "approved" | "seated" | "pacing" | "phone";
   className?: string;
 }) {
   const [failedSource, setFailedSource] = useState<string | null>(null);
@@ -51,7 +51,9 @@ export default function Saul({
       }
       onError={() => setFailedSource(animation)}
       alt={
-        state === "pacing"
+        state === "phone"
+          ? "Saul Goodman talking on the phone"
+          : state === "pacing"
           ? "Saul Goodman walking from left to right"
           : state === "seated"
             ? "Saul Goodman sitting with your Dots"

@@ -4,7 +4,9 @@ import type {
   Conversation,
   ConversationSummary,
   Receipt,
+  ChatMessage,
 } from "../domain";
+import type { CallCaption } from "../lib/voice";
 import {
   conversationSchema,
   fetchConversation,
@@ -35,6 +37,7 @@ export function useConversations(
   const [conversations, setConversations] =
     useState<ConversationSummary[]>(demo);
   const [active, setActive] = useState<Conversation | null>(null);
+  const [voiceSegments, setVoiceSegments] = useState<{ after: number; messages: ChatMessage[] }[]>([]);
   const [draftId, setDraftId] = useState(() => crypto.randomUUID());
   const [text, setText] = useState("");
   const [pending, setPending] = useState("");
@@ -91,6 +94,7 @@ export function useConversations(
     operation.current?.abort();
     setLoading(false);
     setActive(null);
+    setVoiceSegments([]);
     setProgress(null);
     setProgressError("");
     setDraftId(crypto.randomUUID());
@@ -113,6 +117,7 @@ export function useConversations(
       if (!conversation) throw Error("Conversation not found.");
       if (!controller.signal.aborted) {
         setActive(conversation);
+        setVoiceSegments([]);
         setText("");
         setAnimatedMessage(-1);
         retry.current = null;
@@ -209,9 +214,22 @@ export function useConversations(
       }
     }
   }
+  function appendVoiceTranscript(captions: CallCaption[]) {
+    const transcript = captions.filter((c) => c.text.trim()).map((c) => ({ role: c.role, content: c.text }));
+    if (transcript.length) setVoiceSegments((previous) => [...previous, { after: active?.messages.length ?? 0, messages: transcript }].slice(-24));
+    if (live) void onRefresh().catch(() => setError("Workspace data could not refresh after the call. Please try again."));
+  }
+  const storedMessages = active?.messages ?? [];
+  const messages: ChatMessage[] = [];
+  for (let i = 0; i <= storedMessages.length; i++) {
+    if (i > 0) messages.push(storedMessages[i - 1]);
+    for (const segment of voiceSegments) if (segment.after === i) messages.push(...segment.messages);
+  }
   return {
     conversations,
     active,
+    messages,
+    appendVoiceTranscript,
     text,
     setText,
     pending,

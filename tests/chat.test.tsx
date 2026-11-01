@@ -55,6 +55,23 @@ function send(text: string) {
   });
   fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 }
+describe("ephemeral voice captions in the shared chat", () => {
+  it("keeps calls in chronological order alongside text without saving a false history entry", async () => {
+    const { result } = renderHook(() => useConversations(false, demoReceipts, vi.fn()));
+    act(() => result.current.appendVoiceTranscript([
+      { role: "user", text: "Check my books", startMs: 0, endMs: 100 },
+      { role: "assistant", text: "Two receipts await review.", startMs: 200, endMs: 400 },
+    ]));
+    expect(result.current.messages.map((m) => m.content)).toEqual(["Check my books", "Two receipts await review."]);
+    expect(result.current.conversations).toHaveLength(0);
+    await act(() => result.current.send("VAT question"));
+    expect(result.current.messages[0].content).toBe("Check my books");
+    expect(result.current.messages[2].content).toBe("VAT question");
+    expect(result.current.active?.messages).toHaveLength(2);
+    act(() => result.current.newConversation());
+    expect(result.current.messages).toEqual([]);
+  });
+});
 describe("chat messages and deterministic cards", () => {
   it("exposes one complete accessible answer while revealing visual words in order", () => {
     render(

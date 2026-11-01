@@ -1,3 +1,4 @@
+import { requireInternal } from "./oauth.js";
 import { getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
 import {
@@ -177,6 +178,7 @@ export async function replyToConversation(
   uid: string,
   messages: ChatMessage[],
   progress?: ChatProgress,
+  signal?: AbortSignal,
 ): Promise<ChatMessage> {
   const activity: ChatToolResult[] = [];
   const tools = sharedTools(uid).map((t) =>
@@ -189,6 +191,9 @@ export async function replyToConversation(
         await progress?.event({ kind: "tool_started", tool: name });
         let result;
         try {
+          signal?.throwIfAborted();
+          await requireInternal(uid);
+          signal?.throwIfAborted();
           result = await t.execute(args);
         } catch (error) {
           await progress?.event({ kind: "tool_failed", tool: name });
@@ -224,7 +229,7 @@ export async function replyToConversation(
       const stream = await run(agent, history, {
         stream: true,
         maxTurns: 6,
-        signal: AbortSignal.timeout(65000),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(65000)]) : AbortSignal.timeout(65000),
       });
       // Observe completion rejection immediately, as in AVEC's stream adapter.
       void stream.completed.catch(() => undefined);
@@ -246,7 +251,7 @@ export async function replyToConversation(
     } else {
       result = await run(agent, history, {
         maxTurns: 6,
-        signal: AbortSignal.timeout(65000),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(65000)]) : AbortSignal.timeout(65000),
       });
     }
   } catch {

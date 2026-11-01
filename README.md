@@ -1,5 +1,23 @@
 # Better Call Pet
 
+Saul supports internal browser voice calls from the chat's phone button: live
+captions, mute/unmute, hang-up and a dedicated phone animation. Calls use GPT-Live
+with the existing gpt-6-luna agent and server tools. Deploy Functions and Hosting
+together to enable the new endpoint; no extra secret is required beyond
+`OPENAI_API_KEY` with GPT-Live access. See `docs/architecture.md` and `docs/contracts.md`.
+
+Voice validation: `npm test -- --maxWorkers=2`, `npm run build` and
+`npm --prefix functions run build`. Feature E2E scenarios are included in
+`tests/e2e/voice.spec.ts`; their execution is temporarily paused by `AGENTS.md`.
+After E2E execution is explicitly re-enabled, the opt-in paid provider smoke on macOS is
+`RUN_VOICE_LIVE=1 npm run test:voice:live`. It uses synthetic speech, fixture
+Firebase identity and fixture books with the real voice provider, gpt-6-luna
+and shared receipt tools; it never opens the microphone or production Firestore.
+The [OpenAI GPT-Live WebRTC guide](https://developers.openai.com/api/docs/guides/voice-webrtc)
+and [delegation guide](https://developers.openai.com/api/docs/guides/live-delegation)
+describe the provider protocol used here.
+
+
 A dark-only, internal expenses workspace for a UK LTD, with Saul Goodman as its accounting companion. Built at the DevDay Exchange Community Hackathon, London, 1 November 2026.
 
 **Core journey:** add a GBP receipt → review extracted fields → classify input VAT → inspect the proposed journal → approve and post once → export the ledger. The public demo uses fictional receipts and clearly labelled illustrative rules. Live data requires an authorised Google account.

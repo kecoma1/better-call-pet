@@ -1,4 +1,5 @@
 import express from "express";
+import { voiceCall } from "./voice.js";
 import { initializeApp } from "firebase-admin/app";
 import { setTracingDisabled } from "@openai/agents";
 import OpenAI from "openai";
@@ -120,6 +121,7 @@ app.get("/api/conversations", firebaseUser, async (_q, r) => {
 app.get("/api/conversations/:id", firebaseUser, async (q, r) => {
   r.json(await getConversation(r.locals.uid, q.params.id as string));
 });
+app.post("/api/voice", firebaseUser, voiceCall);
 app.post("/api/chat", firebaseUser, async (q, r) => {
   const conversation = await sendConversationMessage(r.locals.uid, q.body);
   r.json({ message: conversation.messages.at(-1)!.content, conversation });

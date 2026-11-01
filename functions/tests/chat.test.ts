@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   quota: vi.fn(),
   tools: [] as any[],
 }));
+vi.mock("../src/oauth", () => ({ requireInternal: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("firebase-admin/firestore", () => {
   const ref = (key: string) => ({
     key,

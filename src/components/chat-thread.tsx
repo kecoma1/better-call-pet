@@ -7,6 +7,7 @@ import { Label } from "./ui/label";
 import ChatMessage from "./chat-message";
 import Saul from "./saul";
 import ChatActivity from "./chat-activity";
+import VoiceCall from "./voice-call";
 
 export default function ChatThread({
   workspace: w,
@@ -19,7 +20,7 @@ export default function ChatThread({
 }) {
   const bottom = useRef<HTMLDivElement>(null);
   const log = useRef<HTMLDivElement>(null);
-  const messages = w.active?.messages ?? [];
+  const messages = w.messages;
   const empty = !messages.length && !w.pending && !w.loading;
   useEffect(() => {
     if (messages.length || w.pending)
@@ -45,9 +46,9 @@ export default function ChatThread({
         )}
         {messages.map((message, index) => (
           <ChatMessage
-            key={`${w.active!.id}-${index}`}
+            key={`${w.active?.id ?? "voice-draft"}-${index}`}
             message={message}
-            animate={index === w.animatedMessage}
+            animate={message === w.active?.messages[w.animatedMessage]}
             demo={!live}
             onOpenReceipt={onOpenReceipt}
           />
@@ -134,6 +135,7 @@ export default function ChatThread({
             }
           }}
         />
+        <VoiceCall live={live} disabled={w.busy || w.loading} messages={messages} onEnd={w.appendVoiceTranscript} />
         <Button
           size="icon"
           type="submit"

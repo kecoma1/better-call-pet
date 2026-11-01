@@ -6,6 +6,28 @@
 
 `Agent or MCP → sharedTools → same domain service`.
 
+Voice calls use `VoiceCall → services/voice.ts → POST /api/voice → GPT-Live WebRTC`
+with a trusted server sideband. `functions/src/agent.ts` delegates to the existing gpt-6-luna
+conversation adapter in `functions/src/chat.ts` and `sharedTools` for text and delegated voice requests. The browser never
+receives a provider key or tool executor. Its data channel can only close or
+mute/unmute the call. Firebase identity and active internal membership are required;
+membership is checked throughout the call and before tool execution. Calls start
+directly, with no product consent/terms flow. The browser manages microphone access.
+
+Audio goes directly over WebRTC; authenticated NDJSON streams the SDP answer,
+captions and tool activity from the function. Production uses the function URL
+directly because [Firebase Hosting limits rewritten requests to 60 seconds](https://firebase.google.com/docs/hosting/functions).
+Calls have an eight-minute server ceiling and end on hang-up, hidden tab,
+account change, unmount or connection failure. Media tracks, audio nodes, timers
+and sideband connections are cleaned up. Provider session creation is never retried
+automatically. No audio recording is stored. Captions remain in the current chat's
+memory; reloading clears them. Backend failures are displayed, without demo answers.
+
+The call screen adapts AVEC's 500 ms opacity/vertical text entrances and separate
+microphone/assistant audio levels. Reduced motion uses a still and disables reactive
+motion. Voice tools retain the existing draft-only accounting boundaries.
+
+
 Clicking an expense row (overview or receipts) or a ledger row opens the shared `ReceiptSheet` on the right. Rows support Enter/Space and restore keyboard focus when dismissed. Creating a new expense continues to use `ReceiptDialog`; accounting actions and VAT restrictions are shared with the existing posting service.
 
 The overview's Saul banner is the expense notifications area. `src/lib/notifications.ts` derives current work from review-state expenses: missing invoice evidence, VAT reviews, then expenses awaiting approval. `NotificationsBanner` lets users browse these groups and open the relevant expense sheet. Posting updates the banner immediately. These are current-work notifications; there is no push delivery, unread status or notification history yet.
@@ -42,6 +64,14 @@ Use isolated branches/worktrees for simultaneous work. `App.tsx`, `style.css`, `
 The settings connection scene uses `saul-seated.webm`, a silent transparent VP9 video with a six-second smoking loop. Only the cigar hand and smoke move; the seated lower body stays fixed on the Dots. `saul-seated.webp` is the animated fallback if video playback fails, and `saul-seated.png` is the matching still for reduced motion or failed media. The scene scales as one composition, and the Dots stay stationary on hover so Saul keeps his seat.
 
 `public/chibi/saul-{idle,smoking,thinking,approved,pacing}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. The floating chat launcher explicitly uses `smoking`, the relaxed cigar-only clip. The launcher shows only Saul’s animated icon and status dot, without the “Better call Saul” callout. The notifications banner uses `thinking` for pending work and `approved` when caught up, so it never shares the launcher's animation. Inside chat, Saul uses the `pacing` animation in the empty state; messages occupy the conversation area once a question is sent. Each state has its own matching PNG for reduced motion or failed animation loads; errors are scoped to the failed animation. The HTML loader randomly chooses PNG states, with an idle fallback.
+
+The voice scene uses its own `saul-phone.webp`: a six-second transparent loop of
+Saul talking on a phone, taking short steps left and right. `saul-phone.png` is the
+matching still. Source pose and chroma frame live in `marketing/chibi/source/`,
+and the motion prompt is `marketing/chibi/prompts/saul-phone.txt`. The pose was
+prepared with built-in ImageGen from the approved pacing art; Seedance generates
+the video and the existing export pipeline keys the background. Raw video,
+provider task metadata and visual QA contact sheets remain ignored under `out/`.
 
 Seedance cigar source generation already exists at `marketing/chibi/out/saul-cigar.mp4` in the shared working directory (ignored). Preserve the original approved character art. Generated task metadata can contain signed URLs and must stay ignored.
 

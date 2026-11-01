@@ -10,7 +10,8 @@
     "test:e2e": "playwright test",
     "preview": "vite preview --host 0.0.0.0",
     "check": "npm test && npm run build && npm --prefix functions run build",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-bcp-chat \"vitest run --config vitest.rules.config.ts\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-bcp-chat \"vitest run --config vitest.rules.config.ts\"",
+    "test:voice:live": "node --env-file=.env node_modules/vitest/vitest.mjs run --config qa/voice.vitest.config.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
