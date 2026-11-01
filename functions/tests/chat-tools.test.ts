@@ -116,7 +116,7 @@ describe("chat with the real Agents SDK and shared tools", () => {
     const model = state.requests[0];
     expect(model.systemInstructions).toContain("explicitly requested fake");
     expect(model.systemInstructions).toContain("SYNTHETIC TEST DATA");
-    expect(model.tools.map((tool: any) => tool.name)).toEqual(["list_receipts", "get_company", "create_receipt", "save_company"]);
+    expect(model.tools.map((tool: any) => tool.name)).toEqual(["list_receipts", "get_company", "create_receipt", "save_company", "list_invoices", "create_invoice", "get_invoice_download", "download_invoice"]);
     for (const tool of model.tools) {
       expect(tool.strict).toBe(true);
       expect(tool.parameters).toMatchObject({ type: "object", additionalProperties: false });
@@ -194,7 +194,7 @@ describe("authenticated chat and MCP tool routing", () => {
   }
   it("filters MCP tools by current OAuth scopes and executes the same validated create tool", async () => {
     const read = await mcp("accounts:read", "tools/list");
-    expect(read.result.tools.map((tool: any) => tool.name)).toEqual(["list_receipts", "get_company"]);
+    expect(read.result.tools.map((tool: any) => tool.name)).toEqual(["list_receipts", "get_company", "list_invoices", "get_invoice_download", "download_invoice"]);
     const denied = await mcp("accounts:read", "tools/call", { name: "create_receipt", arguments: synthetic(0) });
     expect(denied.error ?? denied.result?.isError).toBeTruthy();
     expect(expenseRows()).toHaveLength(0);

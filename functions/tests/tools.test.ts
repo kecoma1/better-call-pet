@@ -22,9 +22,10 @@ beforeEach(() => {
 });
 
 describe("shared tool contracts and persistence", () => {
-  it("exposes only the four supported tools, with no posting or payment capability", () => {
+  it("exposes only the eight supported tools, with no posting or payment capability", () => {
     expect(tools().map(({ name, readOnly }) => [name, readOnly])).toEqual([
       ["list_receipts", true], ["get_company", true], ["create_receipt", false], ["save_company", false],
+      ["list_invoices", true], ["create_invoice", false], ["get_invoice_download", true], ["download_invoice", true],
     ]);
   });
   it("reads default and saved company configuration, then saves only validated fields", async () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 const session = vi.hoisted(() => ({currentUser: null as null | {getIdToken: () => Promise<string>}}));
-vi.mock('../src/firebase', () => ({auth: session}));
+vi.mock('../src/firebase', () => ({currentWorkspaceUser: () => session.currentUser}));
 import {api} from '../src/services/api';
 beforeEach(() => {session.currentUser = null;});
 describe('authenticated transport', () => {

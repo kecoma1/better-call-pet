@@ -14,13 +14,16 @@ export interface ChatMessage {
   activity?: ChatEvent[];
 }
 export interface ChatToolResult {
-  name: "list_receipts" | "get_company" | "create_receipt" | "save_company";
+  name: "list_receipts" | "get_company" | "create_receipt" | "save_company" | "list_invoices" | "create_invoice" | "get_invoice_download" | "download_invoice";
   receipts?: Pick<
     Receipt,
     "id" | "vendor" | "netPence" | "vatPence" | "status"
   >[];
   receiptCount?: number;
   company?: Pick<Company, "name" | "vatRegistered" | "yearEnd">;
+  invoices?: Pick<Invoice, "id" | "number" | "customerName" | "totalPence" | "status">[];
+  invoiceCount?: number;
+  download?: InvoiceDownload;
 }
 export const chatEventKinds = [
   "classifying",
@@ -249,3 +252,39 @@ export const demoReceipts: Receipt[] = examples.map((r, i) => ({
   decision: demoDecision(r, defaultCompany),
   createdAt: r.date + "T10:00:00Z",
 }));
+
+// Sales invoices are immutable drafts, separate from purchase receipts and journals.
+export interface InvoiceLine {
+  description: string;
+  quantity: number;
+  unitPence: number;
+  vatPence: number; // Explicit VAT for the whole line, never inferred by AI.
+}
+export interface InvoiceInput {
+  number: string;
+  issueDate: string;
+  dueDate: string;
+  sellerAddress: string;
+  customerName: string;
+  customerAddress: string;
+  lines: InvoiceLine[];
+  notes: string;
+  paymentDetails: string;
+}
+export interface Invoice extends InvoiceInput {
+  demo?: true;
+  id: string;
+  status: "draft";
+  currency: "GBP";
+  seller: Pick<Company, "name" | "number" | "vatRegistered" | "vatNumber">;
+  netPence: number;
+  vatPence: number;
+  totalPence: number;
+  createdAt: string;
+  createdBy: string;
+}
+export interface InvoiceDownload {
+  url: string;
+  filename: string;
+  publicUrl: string;
+}

@@ -10,6 +10,10 @@ const labels = {
   get_company: "Company checked",
   create_receipt: "Draft created",
   save_company: "Company saved",
+  list_invoices: "Invoices listed",
+  create_invoice: "Invoice draft created",
+  get_invoice_download: "Invoice links ready",
+  download_invoice: "Invoice PDF ready",
 };
 export default function ChatToolCards({
   tools,
@@ -67,6 +71,19 @@ export default function ChatToolCards({
       </div>
       {tools.map((tool, index) => (
         <div key={index}>
+          {(tool.invoices || tool.download) && (
+            <Card className="chat-result-card">
+              <CardContent>
+                <strong>{tool.invoices ? `Invoice drafts · ${tool.invoiceCount ?? tool.invoices.length}` : "Invoice PDF"}</strong>
+                {tool.invoices && (!tool.invoices.length ? <p>No invoice drafts found.</p> : (
+                  <ul>{tool.invoices.map((invoice) => (
+                    <li key={invoice.id}><div><strong>{invoice.number}</strong><small>{invoice.customerName} · Draft</small></div><span>{money(invoice.totalPence)}</span></li>
+                  ))}</ul>
+                ))}
+                {tool.download && <p><a href={tool.download.publicUrl} target="_blank" rel="noopener noreferrer">View invoice</a>{" · "}<a href={tool.download.url} target="_blank" rel="noopener noreferrer">Download PDF</a></p>}
+              </CardContent>
+            </Card>
+          )}
           {tool.receipts && (
             <Card className="chat-result-card">
               <CardContent>

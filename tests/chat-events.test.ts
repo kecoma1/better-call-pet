@@ -5,7 +5,7 @@ const state = vi.hoisted(() => ({
   fail: null as null | (() => void),
   stop: vi.fn(),
 }));
-vi.mock("../src/firebase", () => ({ auth: state.auth, db: {} }));
+vi.mock("../src/firebase", () => ({ auth: state.auth, db: {}, currentWorkspaceUser: () => state.auth.currentUser, workspaceFirestore: () => ({}) }));
 vi.mock("firebase/firestore", () => ({
   collection: (_db: unknown, name: string) => name,
   where: (field: string, operator: string, value: string) => ({

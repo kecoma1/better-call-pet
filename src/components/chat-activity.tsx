@@ -6,12 +6,20 @@ const tools = {
   get_company: "Checking company details",
   create_receipt: "Creating receipt draft",
   save_company: "Saving company details",
+  list_invoices: "Listing invoices",
+  create_invoice: "Creating invoice draft",
+  get_invoice_download: "Preparing invoice links",
+  download_invoice: "Preparing invoice PDF",
 };
 const completed = {
   list_receipts: "Receipts listed",
   get_company: "Company details checked",
   create_receipt: "Receipt draft created",
   save_company: "Company details saved",
+  list_invoices: "Invoices listed",
+  create_invoice: "Invoice draft created",
+  get_invoice_download: "Invoice links ready",
+  download_invoice: "Invoice PDF ready",
 };
 export default function ChatActivity({ events }: { events: ChatEvent[] }) {
   if (!events.length) return null;

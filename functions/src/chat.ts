@@ -1,4 +1,5 @@
-import { requireInternal } from "./oauth.js";
+import { requireInternal, requireWorkspace } from "./oauth.js";
+import { actorUid, type WorkspaceActor } from "./workspace-context.js";
 import { getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
 import {
@@ -19,6 +20,8 @@ import {
   type ChatToolResult,
   type Receipt,
   type Company,
+  type Invoice,
+  type InvoiceDownload,
 } from "../../src/domain.js";
 
 interface StoredConversation extends Conversation {
@@ -145,6 +148,20 @@ export function presentToolResult(
   name: ChatToolResult["name"],
   result: unknown,
 ): ChatToolResult {
+  if (name === "list_invoices" || name === "create_invoice") {
+    const created = result as { invoice: Invoice; download: InvoiceDownload };
+    const items = name === "list_invoices" ? result as Invoice[] : [created.invoice];
+    return {
+      name,
+      invoiceCount: items.length,
+      invoices: items.slice(0, 20).map(({ id, number, customerName, totalPence, status }) => ({ id, number, customerName, totalPence, status })),
+      ...(name === "create_invoice" ? { download: created.download } : {}),
+    };
+  }
+  if (name === "get_invoice_download" || name === "download_invoice") {
+    const { url, publicUrl, filename } = result as InvoiceDownload;
+    return { name, download: { url, publicUrl, filename } };
+  }
   if (name === "list_receipts" || name === "create_receipt") {
     const items = (name === "list_receipts" ? result : [result]) as Receipt[];
     return {
@@ -165,14 +182,14 @@ export function presentToolResult(
   return { name, company: { name: companyName, vatRegistered, yearEnd } };
 }
 export async function replyToConversation(
-  uid: string,
+  actor: WorkspaceActor,
   messages: ChatMessage[],
   progress?: ChatProgress,
   signal?: AbortSignal,
   onTool?: (result: ChatToolResult) => void,
 ): Promise<ChatMessage> {
   const activity: ChatToolResult[] = [];
-  const tools = sharedTools(uid).map((t) =>
+  const tools = sharedTools(actor).map((t) =>
     tool({
       name: t.name,
       description: t.description,
@@ -183,7 +200,8 @@ export async function replyToConversation(
         let result;
         try {
           signal?.throwIfAborted();
-          await requireInternal(uid);
+          if (typeof actor === "string") await requireInternal(actor);
+          else await requireWorkspace(actor);
           signal?.throwIfAborted();
           result = await t.execute(args);
         } catch (error) {
@@ -194,6 +212,10 @@ export async function replyToConversation(
         activity.push(presented);
         await progress?.tool(presented);
         onTool?.(presented);
+        if (result && typeof result === "object" && "blob" in result) {
+          const { blob: _blob, ...metadata } = result;
+          return JSON.stringify(metadata);
+        }
         return JSON.stringify(result);
       },
     }),
@@ -261,9 +283,10 @@ export async function replyToConversation(
   };
 }
 export async function sendConversationMessage(
-  uid: string,
+  actor: WorkspaceActor,
   input: unknown,
 ): Promise<Conversation> {
+  const uid = actorUid(actor);
   const request = chatRequestSchema.parse(input);
   const db = getFirestore(),
     ref = conversations().doc(request.conversationId);
@@ -319,7 +342,7 @@ export async function sendConversationMessage(
     return visibleConversation(previous);
   const progress = chatProgress(initial, attemptId);
   try {
-    await aiQuota(uid);
+    await aiQuota(actor);
     const messages: ChatMessage[] = [
       ...(previous?.messages ?? []),
       { role: "user", content: request.message },
@@ -328,7 +351,7 @@ export async function sendConversationMessage(
     await progress.event({ kind: "classifying" });
     const classification = await classifyConversation(messages.slice(-16));
     await progress.event({ kind: "classified", topic: classification.topic });
-    const reply = await replyToConversation(uid, messages.slice(-16), progress);
+    const reply = await replyToConversation(actor, messages.slice(-16), progress);
     reply.activity = progress.completion();
     const saved: StoredConversation = {
       id: request.conversationId,

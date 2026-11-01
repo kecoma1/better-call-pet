@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 vi.mock("../src/firebase", () => ({
-  auth: null,
+  auth: null, currentWorkspaceUser: () => null, workspaceFirestore: () => null, selectWorkspaceMode: vi.fn(), observeWorkspaceSession: vi.fn(),
   signIn: vi.fn(),
   api: vi.fn(),
 }));

@@ -1,6 +1,6 @@
-import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { initializeApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, onAuthStateChanged, type User } from "firebase/auth";
 const configured = Boolean(import.meta.env.VITE_FIREBASE_API_KEY);
 const app = configured
   ? initializeApp({
@@ -12,6 +12,59 @@ const app = configured
   : null;
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
+// Separate Firebase persistence keeps the demo identity when an internal member
+// signs in or out. Neither identity is copied into the other's workspace.
+const demoApp = app ? initializeApp(app.options, "demo") : null;
+const demoAuth = demoApp ? getAuth(demoApp) : null;
+const demoDb = demoApp ? getFirestore(demoApp) : null;
+const modeListeners = new Set<() => void>();
+export type WorkspaceMode = "live" | "demo";
+export function workspaceMode(): WorkspaceMode {
+  return localStorage.getItem("bcp-workspace-mode") === "demo" ? "demo" : "live";
+}
+export const currentWorkspaceUser = () => workspaceMode() === "demo"
+  ? demoAuth?.currentUser || null
+  : auth?.currentUser || demoAuth?.currentUser || null;
+export const workspaceFirestore = () => currentWorkspaceUser()?.isAnonymous ? demoDb : db;
+export async function selectWorkspaceMode(mode: WorkspaceMode) {
+  if (mode === "demo" && demoAuth && !demoAuth.currentUser) {
+    openingDemo ??= signInAnonymously(demoAuth).finally(() => { openingDemo = undefined; });
+    await openingDemo;
+  }
+  localStorage.setItem("bcp-workspace-mode", mode);
+  modeListeners.forEach((update) => update());
+}
+let openingDemo: Promise<unknown> | undefined;
+export function observeWorkspaceSession(onUser: (user: User | null) => void, onError: (error: Error) => void) {
+  if (!auth || !demoAuth) { onUser(null); return () => {}; }
+  let active = true;
+  let ready = false;
+  let previous: User | null = null;
+  const primary = auth, demo = demoAuth;
+  const update = () => {
+    const user = currentWorkspaceUser();
+    if (active && ready && user && user !== previous) {
+      previous = user;
+      onUser(user);
+    }
+  };
+  modeListeners.add(update);
+  const stopPrimary = onAuthStateChanged(primary, update, onError);
+  const stopDemo = onAuthStateChanged(demo, update, onError);
+  void Promise.all([primary.authStateReady(), demo.authStateReady()]).then(async () => {
+    if (!active) return;
+    ready = true;
+    update();
+    if (!demo.currentUser) {
+      openingDemo ??= signInAnonymously(demo).finally(() => { openingDemo = undefined; });
+      await openingDemo;
+    }
+    update();
+  }).catch(() => {
+    if (active && !primary.currentUser) onError(Error("The demo session could not open. Please reload to try again."));
+  });
+  return () => { active = false; modeListeners.delete(update); stopPrimary(); stopDemo(); };
+}
 export async function signIn() {
   if (!auth)
     throw Error("Firebase is not configured yet. You can explore the demo.");

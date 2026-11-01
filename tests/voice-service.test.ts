@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ token: vi.fn() }));
-vi.mock("../src/firebase", () => ({ auth: { currentUser: { getIdToken: mocks.token } } }));
+vi.mock("../src/firebase", () => ({ currentWorkspaceUser: () => ({ getIdToken: mocks.token }) }));
 import { readVoiceStream, startVoiceCall } from "../src/services/voice";
 
 const enc = new TextEncoder();

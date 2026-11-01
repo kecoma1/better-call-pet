@@ -1,9 +1,12 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { generateInvoicePdf } from "../../src/lib/invoice-pdf.js";
+import { invoiceInputSchema } from "../../src/lib/invoices.js";
+import { createInvoice, getInvoice, invoiceDownload, listInvoices } from "./invoices.js";
+import { actorUid, workspaceDocument, workspaceFields, workspaceList, type WorkspaceActor } from "./workspace-context.js";
 import { receiptSchema, companySchema, decisionResponseSchema } from "./schemas.js";
 import {
-  defaultCompany,
   duplicateKey,
   journal,
   vatSource,
@@ -14,22 +17,16 @@ import {
 } from "../../src/domain.js";
 const db = () => getFirestore();
 export const userRef = (uid: string) => db().collection("users").doc(uid);
-export const companyRef = () => db().collection("companies").doc("primary");
+export { company, companyRef } from "./company.js";
+import { company, companyRef } from "./company.js";
 export const expensesRef = () => db().collection("expenses");
-export async function company(uid: string): Promise<Company> {
-  return {
-    ...defaultCompany,
-    name: "Your LTD",
-    vatRegistered: false,
-    ...(await companyRef().get()).data(),
-  };
-}
-export async function receipts(uid: string): Promise<Receipt[]> {
+export async function receipts(uid: WorkspaceActor): Promise<Receipt[]> {
   return (
-    await expensesRef().orderBy("createdAt", "desc").limit(500).get()
+    await workspaceList("expenses", uid).get()
   ).docs.map((d) => d.data() as Receipt);
 }
-export async function aiQuota(uid: string) {
+export async function aiQuota(actor: WorkspaceActor) {
+  const uid = actorUid(actor);
   const ref = db()
     .collection("aiUsage")
     .doc(uid + "-" + new Date().toISOString().slice(0, 10));
@@ -142,26 +139,27 @@ export async function decide(
     ...(result.success && result.data.id ? { decisionId: result.data.id } : {}),
   };
 }
-export async function createReceipt(uid: string, input: ReceiptInput) {
+export async function createReceipt(uid: WorkspaceActor, input: ReceiptInput) {
   const id = createHash("sha256")
     .update(duplicateKey(input))
     .digest("hex")
     .slice(0, 32);
-  const ref = expensesRef().doc(id);
+  const ref = workspaceDocument("expenses", id, uid);
   if ((await ref.get()).exists)
     throw Error("This receipt is already in your books.");
   await aiQuota(uid);
   const c = await company(uid);
   const decision = await decide(input, c);
   const { image, ...fields } = input;
-  const r: Receipt = {
+  const r: Receipt & { createdBy: string } = {
     ...fields,
     id,
     decision,
     status: "review",
     createdAt: new Date().toISOString(),
-    createdBy: uid,
-  } as Receipt;
+    createdBy: actorUid(uid),
+    ...workspaceFields(uid),
+  };
   await db().runTransaction(async (tx) => {
     if ((await tx.get(ref)).exists)
       throw Error("This receipt is already in your books.");
@@ -169,9 +167,9 @@ export async function createReceipt(uid: string, input: ReceiptInput) {
   });
   return r;
 }
-export async function postReceipt(uid: string, id: string) {
+export async function postReceipt(uid: WorkspaceActor, id: string) {
   const c = await company(uid);
-  const ref = expensesRef().doc(id);
+  const ref = workspaceDocument("expenses", id, uid);
   return db().runTransaction(async (tx) => {
     const d = await tx.get(ref);
     if (!d.exists) throw Error("Receipt not found.");
@@ -189,19 +187,20 @@ export async function postReceipt(uid: string, id: string) {
     const lines = journal(r);
     tx.update(ref, {
       status: "posted",
-      postedBy: uid,
+      postedBy: actorUid(uid),
       postedAt: new Date().toISOString(),
     });
-    tx.set(db().collection("journals").doc(id), {
+    tx.set(workspaceDocument("journals", id, uid), {
       receiptId: id,
       date: r.date,
       lines,
       createdAt: new Date().toISOString(),
+      ...workspaceFields(uid),
     });
     return { ...r, status: "posted" };
   });
 }
-export function sharedTools(uid: string) {
+export function sharedTools(uid: WorkspaceActor) {
   return [
     {
       name: "list_receipts",
@@ -209,6 +208,7 @@ export function sharedTools(uid: string) {
       schema: z.object({}),
       execute: async () => receipts(uid),
       readOnly: true,
+      scope: "accounts:read",
     },
     {
       name: "get_company",
@@ -216,6 +216,7 @@ export function sharedTools(uid: string) {
       schema: z.object({}),
       execute: async () => company(uid),
       readOnly: true,
+      scope: "accounts:read",
     },
     {
       name: "create_receipt",
@@ -225,6 +226,7 @@ export function sharedTools(uid: string) {
       execute: async (input: unknown) =>
         createReceipt(uid, receiptSchema.parse(input)),
       readOnly: false,
+      scope: "receipts:write",
     },
     {
       name: "save_company",
@@ -232,10 +234,70 @@ export function sharedTools(uid: string) {
       schema: companySchema,
       execute: async (input: unknown) => {
         const c = companySchema.parse(input);
-        await companyRef().set(c, { merge: true });
+        await companyRef(uid).set(c, { merge: true });
         return c;
       },
       readOnly: false,
+      scope: "receipts:write",
+    },
+    {
+      name: "list_invoices",
+      description:
+        "List sales invoice drafts. These are separate from purchase receipts and have no ledger or payment state.",
+      schema: z.object({}),
+      execute: async () => listInvoices(uid),
+      readOnly: true,
+      scope: "accounts:read",
+    },
+    {
+      name: "create_invoice",
+      description:
+        "Create an immutable GBP sales invoice DRAFT on explicit request and return public viewing and PDF download links. For real invoices ask for missing invoice number, addresses, dates, line items and explicit VAT. Demo requests may invent clearly fictional data and use zero VAT when registration details are absent. Repeating the same number and details is safe. Never posts, issues, sends or records payment. VAT is the total per line, in integer pence.",
+      schema: invoiceInputSchema,
+      execute: async (input: unknown) => {
+        const invoice = await createInvoice(
+          uid,
+          invoiceInputSchema.parse(input),
+        );
+        return { invoice, download: await invoiceDownload(uid, invoice.id) };
+      },
+      readOnly: false,
+      scope: "invoices:write",
+    },
+    {
+      name: "get_invoice_download",
+      description:
+        "Get public viewing and PDF download URLs for a sales invoice draft. Anyone with the URL can access it without signing in. Return both as Markdown links.",
+      schema: z.object({ id: z.string().regex(/^[a-f0-9]{32}$/) }),
+      execute: async (input: unknown) =>
+        invoiceDownload(
+          uid,
+          z.object({ id: z.string().regex(/^[a-f0-9]{32}$/) }).parse(input).id,
+        ),
+      readOnly: true,
+      scope: "accounts:read",
+    },
+    {
+      name: "download_invoice",
+      description:
+        "Download a sales invoice draft as a PDF file, also returning its public URLs. MCP receives the PDF as an embedded binary resource; use get_invoice_download when only links are needed.",
+      schema: z.object({ id: z.string().regex(/^[a-f0-9]{32}$/) }),
+      execute: async (input: unknown) => {
+        const id = z
+          .object({ id: z.string().regex(/^[a-f0-9]{32}$/) })
+          .parse(input).id;
+        const links = await invoiceDownload(uid, id);
+        const invoice = await getInvoice(uid, id);
+        return {
+          ...links,
+          mimeType: "application/pdf",
+          blob: Buffer.from(await generateInvoicePdf(invoice, invoice.demo === true)).toString(
+            "base64",
+          ),
+        };
+      },
+      readOnly: true,
+      scope: "accounts:read",
     },
   ];
 }

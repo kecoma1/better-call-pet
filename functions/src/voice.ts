@@ -2,14 +2,17 @@ import type { Request, Response } from "express";
 import { info, warn } from "firebase-functions/logger";
 import { runSaul } from "./agent.js";
 import { aiQuota } from "./tools.js";
-import { requireInternal } from "./oauth.js";
+import { requireInternal, requireWorkspace } from "./oauth.js";
+import type { WorkspaceActor } from "./workspace-context.js";
 import { mergeCallCaption, type CallCaption, type VoiceEvent } from "../../src/lib/voice.js";
 import { readTranscript, liveDelegationId, liveResultChunks, voiceRequestSchema } from "./voice-protocol.js";
 import { createLiveSession, attachLiveSession, closeLiveSession, type LiveConnection } from "./voice-transport.js";
 
 export async function voiceCall(q: Request, r: Response) {
   const input = voiceRequestSchema.parse(q.body);
-  await aiQuota(r.locals.uid);
+  const actor: WorkspaceActor = r.locals.actor ?? r.locals.uid;
+  const authorise = () => typeof actor === "string" ? requireInternal(actor) : requireWorkspace(actor);
+  await aiQuota(actor);
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw Error("Voice calls are not configured on the server.");
   const uid = r.locals.uid as string;
@@ -36,7 +39,7 @@ export async function voiceCall(q: Request, r: Response) {
   };
   r.on("close", stop);
   const timeout = setTimeout(stop, 480000);
-  const membership = setInterval(() => { void requireInternal(uid).catch(() => { failed = true; stop(); }); }, 15000);
+  const membership = setInterval(() => { void authorise().catch(() => { failed = true; stop(); }); }, 15000);
   info("voice.started", { uid });
   try {
     const session = await createLiveSession(key, input.sdp, "gpt-live-1", input.language);
@@ -71,10 +74,10 @@ export async function voiceCall(q: Request, r: Response) {
           emit({ type: "working" });
           const taskTimeout = setTimeout(() => task.abort(), 90000);
           try {
-            await requireInternal(uid);
-            await aiQuota(uid);
+            await authorise();
+            await aiQuota(actor);
             let toolIndex = 0;
-            const message = await runSaul(uid, history, task.signal, (tool) => {
+            const message = await runSaul(actor, history, task.signal, (tool) => {
               if (input.toolCards && !abort.signal.aborted && toolIndex < 12) emit({ type: "tool", id: `${id}-${toolIndex++}`, tool });
             });
             if (abort.signal.aborted) return;

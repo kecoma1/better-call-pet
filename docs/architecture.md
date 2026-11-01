@@ -98,3 +98,46 @@ Seedance cigar source generation already exists at `marketing/chibi/out/saul-cig
 - Finish OAuth interoperability tests with the actual Dot client; current implementation supports registered callbacks and DCR, not client metadata documents.
 - Add tax-period selection and validated reporting only after the expense flow is solid.
 - Media and a short recorded demo are separate deliverables.
+
+
+## Invoices
+
+`src/pages/invoices.tsx` and `InvoiceDialog` use `services/invoices.ts` through the shared
+workspace state. Invoice types live in `src/domain.ts`; shared validation, pence arithmetic,
+and immutable draft construction live in `src/lib/invoices.ts`. `src/lib/invoice-pdf.ts` is
+the shared PDF layout, loaded on demand for browser demo downloads and run server-side for
+live invoices. Company read helpers live in `functions/src/company.ts`.
+
+`functions/src/invoices.ts` owns atomic root `/invoices` and `/invoiceLinks` writes and reads.
+HTTP, the gpt-6-luna agent and MCP all use this service. `sharedTools` declares each tool's
+OAuth scope explicitly; invoice creation requires `invoices:write`. Public sharing is explicit
+in the invoice form and OAuth consent, uses unguessable URLs and exposes only the PDF.
+No sales posting or payment transitions are implemented; reports continue to cover expenses.
+
+## Persistent anonymous demo
+
+`src/firebase.ts` restores a separate `demo` Firebase Auth instance and signs in anonymously
+when necessary. Google/internal identity takes precedence while signed in; signing out
+resumes the same demo identity. Auth or API failures are shown without falling back to local
+sample rules. Only an unconfigured development build exposes the labelled offline demo.
+
+`firebaseWorkspaceUser` verifies the Firebase ID token with revocation checks. Anonymous
+provider claims construct a server-only `WorkspaceActor`; other identities still require
+active internal membership. `workspace-context.ts` maps demo actors to root demo collections
+and UID-prefixed document IDs, with workspace-filtered list queries. Clients cannot choose
+the scope. `demo.ts` atomically seeds a new demo once with fictional, labelled sample data.
+All later mutations, AI decisions, agent tools and voice delegations use the existing services.
+`firestore.indexes.json` contains the two filtered demo list indexes; browser writes remain denied.
+
+Company details, receipts, journals and invoices live on the server. Public invoice tokens
+resolve to the original workspace and demo invoices carry `demo: true`, including DEMO PDF
+markings. OAuth/MCP connections remain internal-only. Demo sessions are not internal members.
+
+`services/conversation.ts` reads and saves the latest 100 messages (5,000 characters each)
+through `/api/conversation`. `conversations.ts` stores internal per-member and anonymous
+per-session histories in root collections. Voice captions are periodically saved server-side
+and appended to chat on hang-up; audio is never retained. Clearing the browser's Firebase
+identity makes that demo inaccessible from that browser. Existing offline data stays local;
+there is no automatic migration or mixing with server or internal records.
+
+The integrated chat retains the full-screen shell, server-owned multi-conversation history and tool snapshots. Anonymous accounts use the same owner-private chat collections and their own authenticated Firestore instance for live events. The older `/api/conversation` text cache remains compatible with older clients and is not accepted as authoritative agent context. The workspace selector keeps the Google session signed in while selecting the isolated anonymous demo session.

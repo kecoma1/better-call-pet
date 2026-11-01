@@ -3,7 +3,7 @@ import { render, screen, within, fireEvent } from "@testing-library/react";
 import ChatMessage from "../src/components/chat-message";
 import App from "../src/App";
 import { vi } from "vitest";
-vi.mock("../src/firebase", () => ({ auth: null, signIn: vi.fn() }));
+vi.mock("../src/firebase", () => ({ auth: null, currentWorkspaceUser: () => null, workspaceFirestore: () => null, selectWorkspaceMode: vi.fn(), observeWorkspaceSession: vi.fn(), signIn: vi.fn() }));
 
 describe("Markdown in both sides of the conversation", () => {
   it.each(["user", "assistant"] as const)(

@@ -12,7 +12,8 @@ service cloud.firestore {
     match /journals/{id} { allow read: if internal(); allow write: if false; }
     match /companies/{id} { allow read: if internal(); allow write: if false; }
     match /chatRuns/{id} {
-      allow read: if internal() && resource.data.createdBy == request.auth.uid;
+      allow read: if request.auth != null && resource.data.createdBy == request.auth.uid
+        && (request.auth.token.get("firebase", {}).get("sign_in_provider", "") == "anonymous" || internal());
       allow write: if false;
     }
     match /{document=**} { allow read, write: if false; }

@@ -14,7 +14,7 @@ vi.mock("../src/services/chat", async (original) => ({
   fetchConversation: vi.fn(),
   sendConversationMessage: vi.fn(),
 }));
-vi.mock("../src/firebase", () => ({ auth: null }));
+vi.mock("../src/firebase", () => ({ auth: null, currentWorkspaceUser: () => null, workspaceFirestore: () => null }));
 vi.mock("../src/services/chat-events", () => ({
   watchChatRun: vi.fn(() => vi.fn()),
 }));

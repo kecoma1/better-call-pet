@@ -1,5 +1,5 @@
 import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { currentWorkspaceUser, workspaceFirestore } from "../firebase";
 import type { ChatRun } from "../domain";
 import { chatRunSchema } from "./chat";
 
@@ -9,7 +9,8 @@ export function watchChatRun(
   onUpdate: (run: ChatRun) => void,
   onError: (error: Error) => void,
 ): () => void {
-  const uid = auth?.currentUser?.uid;
+  const uid = currentWorkspaceUser()?.uid;
+  const db = workspaceFirestore();
   if (!db || !uid) {
     onError(Error("Sign in to receive live chat events."));
     return () => {};

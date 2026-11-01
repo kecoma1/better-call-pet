@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { defaultCompany, demoReceipts, examples } from "../src/domain";
 vi.mock("../src/firebase", () => ({
-  auth: null,
+  auth: null, currentWorkspaceUser: () => null, workspaceFirestore: () => null, selectWorkspaceMode: vi.fn(), observeWorkspaceSession: vi.fn(),
   signIn: vi.fn(),
   api: vi.fn(),
 }));
@@ -75,6 +75,7 @@ describe("foundation surfaces", () => {
         onRefresh={vi.fn()}
       />,
     );
+    await waitFor(() => expect(screen.getByLabelText("Message Saul")).toBeEnabled());
     fireEvent.change(screen.getByLabelText("Message Saul"), {
       target: { value: "What VAT can I reclaim?" },
     });

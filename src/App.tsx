@@ -1,20 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   MessageCircle,
   ReceiptText,
+  FileText,
   BookOpen,
   Files,
   Landmark,
   Percent,
   Settings as SettingsIcon,
-  ChevronsUpDown,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
   Search,
-  LogIn,
   LogOut,
+  LogIn,
   ArrowUpRight,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
@@ -23,7 +23,9 @@ import { Label } from "./components/ui/label";
 import { Card, CardContent } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
 import { useWorkspace } from "./hooks/use-workspace";
+import WorkspaceSwitcher from "./components/workspace-switcher";
 import Overview from "./pages/overview";
+import Invoices from "./pages/invoices";
 import Books from "./pages/books";
 import Reports from "./pages/reports";
 import Settings from "./pages/settings";
@@ -38,6 +40,7 @@ const navigation = [
   { name: "Chat", icon: MessageCircle },
   { name: "Overview", icon: LayoutDashboard },
   { name: "Receipts", icon: ReceiptText },
+  { name: "Invoices", icon: FileText },
   { name: "Bookkeeping", icon: BookOpen },
   { name: "Annual accounts", icon: Files },
   { name: "Corporation Tax", icon: Landmark },
@@ -53,12 +56,14 @@ export default function App() {
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("All receipts");
   const waiting = w.items.filter((r) => r.status === "review").length;
+  const internal = !!w.user && !w.user.isAnonymous;
+  useEffect(() => { setSelected(null); setSearch(""); setFilter("All receipts"); }, [w.user?.uid]);
   const navigate = (p: string) => {
     setPage(p);
     setSearch("");
   };
   if (location.pathname === "/connect")
-    return <Connect live={!!w.user} onLogin={w.login} />;
+    return <Connect live={internal} onLogin={w.login} />;
   return (
     <div
       className={
@@ -78,14 +83,8 @@ export default function App() {
               </strong>
             </span>
           </a>
-          <div className="company-switch">
-            <span className="company-avatar">{w.company.name.slice(0, 1)}</span>
-            <div>
-              <strong>{w.company.name}</strong>
-              <small>Company workspace</small>
-            </div>
-            <ChevronsUpDown size={14} />
-          </div>
+          <WorkspaceSwitcher companyName={w.company.name} live={internal}
+            onSwitch={w.switchMode} onError={w.setError} />
           <span className="nav-caption">WORKSPACE</span>
           <nav aria-label="Main navigation">
             {navigation.map(({ name, icon: Icon }) => (
@@ -128,14 +127,14 @@ export default function App() {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={w.user ? "Sign out" : "Sign in"}
+                aria-label={internal ? "Sign out" : "Sign in"}
                 onClick={() =>
-                  void (w.user ? w.logout() : w.login()).catch((e) =>
+                  void (internal ? w.logout() : w.login()).catch((e) =>
                     w.setError(e.message),
                   )
                 }
               >
-                {w.user ? <LogOut size={16} /> : <LogIn size={16} />}
+                {internal ? <LogOut size={16} /> : <LogIn size={16} />}
               </Button>
             </div>
           </div>
@@ -280,10 +279,18 @@ export default function App() {
                 </CardContent>
               </Card>
             </>
+          ) : page === "Invoices" ? (
+            <Invoices
+              key={w.user?.uid || "demo"}
+              items={w.invoices}
+              company={w.company}
+              live={!!w.user}
+              onCreate={w.addInvoice}
+            />
           ) : page === "Bookkeeping" ? (
             <Books items={w.items} onSelect={setSelected} />
           ) : page === "Settings" ? (
-            <Settings company={w.company} onSave={w.save} live={!!w.user} />
+            <Settings company={w.company} onSave={w.save} live={internal} />
           ) : (
             <Reports page={page} items={w.items} company={w.company} />
           )}

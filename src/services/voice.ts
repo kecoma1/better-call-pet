@@ -1,4 +1,4 @@
-import { auth } from "../firebase";
+import { currentWorkspaceUser } from "../firebase";
 import { voiceEventSchema, type VoiceEvent } from "../lib/voice";
 import { observeCallAudio, type CallAudioLevels } from "./voice-audio";
 
@@ -53,7 +53,7 @@ export async function startVoiceCall(input: CallInput, onEvent: (event: CallEven
   signal: AbortSignal, onControls: (mute: (muted: boolean) => void) => void,
   onLevels: (levels: CallAudioLevels) => void) {
   if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) throw Error("Voice calls need a browser with microphone support on HTTPS or localhost.");
-  const token = await auth?.currentUser?.getIdToken();
+  const token = await currentWorkspaceUser()?.getIdToken();
   if (!token) throw Error("Sign in to call Saul.");
   signal.throwIfAborted();
   const transport = new AbortController();
