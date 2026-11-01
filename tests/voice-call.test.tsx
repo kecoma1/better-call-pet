@@ -6,9 +6,39 @@ import VoiceCall from "../src/components/voice-call";
 
 import AnimatedCaption from "../src/components/animated-caption";
 import type { CallEvent } from "../src/services/voice";
+import { demoReceipts } from "../src/domain";
 
 beforeEach(() => { mock.start.mockReset(); });
 describe("Saul calls", () => {
+  it("refreshes cards after delegated work and keeps the call open after a refresh failure", async () => {
+    let emit!: (event: CallEvent) => void;
+    mock.start.mockImplementation((_input, receive, signal) => {
+      emit = receive;
+      return new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve()));
+    });
+    const onRefresh = vi.fn().mockRejectedValueOnce(Error("Offline")).mockResolvedValue(undefined);
+    const onEnd = vi.fn();
+    const { rerender } = render(<VoiceCall live disabled={false} messages={[]} receipts={demoReceipts} onRefresh={onRefresh} onEnd={onEnd} />);
+    fireEvent.click(screen.getByRole("button", { name: "Call Saul" }));
+    expect(screen.getByRole("button", { name: "End call" })).toHaveFocus();
+    act(() => { emit({ type: "ready" }); emit({ type: "listening" }); });
+    expect(onRefresh).not.toHaveBeenCalled();
+    act(() => { emit({ type: "working" }); });
+    expect(screen.getByRole("status")).toHaveTextContent("Checking your books…");
+    act(() => { emit({ type: "listening" }); });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not update your records.");
+    expect(screen.getByRole("button", { name: "End call" })).toBeVisible();
+    expect(screen.getByText("Paper & Co.")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    expect(onRefresh).toHaveBeenCalledTimes(2);
+    rerender(<VoiceCall live disabled={false} messages={[]} receipts={[...demoReceipts, { ...demoReceipts[0], id: "new-receipt", vendor: "New supplier", createdAt: "2026-11-02T12:00:00Z" }]} onRefresh={onRefresh} onEnd={onEnd} />);
+    expect(screen.getByText("New supplier")).toBeVisible();
+    expect(screen.getByRole("complementary")).toHaveTextContent("Receipts loaded4");
+    fireEvent.click(screen.getByRole("button", { name: "End call" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
   it("starts directly, renders both speakers and mutes before hanging up", async () => {
     const mute = vi.fn(), onEnd = vi.fn();
     let emit!: (event: CallEvent) => void;

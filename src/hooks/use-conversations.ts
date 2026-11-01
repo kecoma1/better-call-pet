@@ -226,6 +226,8 @@ export function useConversations(
     for (const segment of voiceSegments) if (segment.after === i) messages.push(...segment.messages);
   }
   return {
+    receipts: items,
+    refreshWorkspace: onRefresh,
     conversations,
     active,
     messages,

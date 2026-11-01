@@ -138,7 +138,8 @@ export default function ChatThread({
             }
           }}
         />
-        <VoiceCall live={live} disabled={w.busy || w.loading} messages={messages} onEnd={w.appendVoiceTranscript} />
+        <VoiceCall live={live} disabled={w.busy || w.loading} messages={messages} onEnd={w.appendVoiceTranscript}
+          receipts={w.receipts} onRefresh={w.refreshWorkspace} />
         <Button
           size="icon"
           type="submit"
