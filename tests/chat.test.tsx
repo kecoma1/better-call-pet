@@ -43,9 +43,6 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue(conversation);
 });
-function openFloating() {
-  fireEvent.click(screen.getByRole("button", { name: "Open chat with Saul" }));
-}
 function send(text: string) {
   fireEvent.change(screen.getByRole("textbox", { name: "Message Saul" }), {
     target: { value: text },
@@ -131,10 +128,10 @@ describe("chat messages and deterministic cards", () => {
     expect(screen.queryByText("Supplier 6")).not.toBeInTheDocument();
   });
 });
-describe("shared floating and full-page conversation", () => {
-  it("starts empty, sends demo messages, preserves drafts between views and reopens saved history", async () => {
+describe("sidebar chat conversation", () => {
+  it("starts empty, sends demo messages, preserves drafts between sections and reopens saved history", async () => {
     const props = { live: false, items: demoReceipts, onRefresh: vi.fn() };
-    const { rerender } = render(<Chat {...props} view="page" />);
+    const { rerender } = render(<Chat {...props} />);
     expect(
       screen.getByRole("heading", { name: "Let’s talk books." }),
     ).toBeVisible();
@@ -149,10 +146,12 @@ describe("shared floating and full-page conversation", () => {
     fireEvent.change(screen.getByLabelText("Message Saul"), {
       target: { value: "Unsent draft" },
     });
-    rerender(<Chat {...props} view="floating" />);
-    openFloating();
+    rerender(<Chat {...props} active={false} />);
+    expect(
+      screen.queryByRole("textbox", { name: "Message Saul" }),
+    ).not.toBeInTheDocument();
+    rerender(<Chat {...props} />);
     expect(screen.getByLabelText("Message Saul")).toHaveValue("Unsent draft");
-    rerender(<Chat {...props} view="page" />);
     fireEvent.click(screen.getByRole("button", { name: "New conversation" }));
     expect(screen.getByLabelText("Message Saul")).toHaveValue("");
     fireEvent.click(
@@ -178,7 +177,7 @@ describe("shared floating and full-page conversation", () => {
         },
       ]),
     );
-    render(<Chat live={false} items={[]} onRefresh={vi.fn()} view="page" />);
+    render(<Chat live={false} items={[]} onRefresh={vi.fn()} />);
     const history = screen.getByRole("navigation", {
       name: "Conversation history",
     });
@@ -199,7 +198,7 @@ describe("shared floating and full-page conversation", () => {
     });
     expect(within(history).getAllByRole("button")).toHaveLength(1);
   });
-  it("keeps an in-flight request alive when switching between chat views", async () => {
+  it("keeps an in-flight request alive when leaving the chat section", async () => {
     let finish!: () => void;
     vi.mocked(service.sendConversationMessage).mockImplementationOnce(
       (sentId) =>
@@ -212,16 +211,17 @@ describe("shared floating and full-page conversation", () => {
       items: [],
       onRefresh: vi.fn().mockResolvedValue(undefined),
     };
-    const { rerender } = render(<Chat {...props} view="page" />);
+    const { rerender } = render(<Chat {...props} />);
     await waitFor(() =>
       expect(screen.getByLabelText("Message Saul")).toBeEnabled(),
     );
     send("VAT recovery");
     const signal = vi.mocked(service.sendConversationMessage).mock.calls[0][3]!;
-    rerender(<Chat {...props} view="floating" />);
-    openFloating();
+    rerender(<Chat {...props} active={false} />);
+    expect(screen.queryByRole("log")).not.toBeInTheDocument();
     expect(signal.aborted).toBe(false);
     await act(async () => finish());
+    rerender(<Chat {...props} />);
     expect(
       within(screen.getByRole("log")).getByText("Review the invoices."),
     ).toBeInTheDocument();
@@ -231,7 +231,7 @@ describe("shared floating and full-page conversation", () => {
     vi.mocked(service.sendConversationMessage).mockRejectedValueOnce(
       Error("Decisions unavailable"),
     );
-    render(<Chat live items={[]} onRefresh={vi.fn()} view="page" />);
+    render(<Chat live items={[]} onRefresh={vi.fn()} />);
     await waitFor(() =>
       expect(screen.getByLabelText("Message Saul")).toBeEnabled(),
     );
@@ -268,7 +268,6 @@ describe("shared floating and full-page conversation", () => {
         live
         items={[]}
         onRefresh={vi.fn().mockRejectedValue(Error("Offline"))}
-        view="page"
       />,
     );
     await waitFor(() =>
@@ -288,14 +287,14 @@ describe("shared floating and full-page conversation", () => {
   it("shows history load failures with an explicit retry and ignores corrupt demo storage", async () => {
     localStorage.setItem("bcp-demo-chats-v1", "invalid json");
     const { unmount } = render(
-      <Chat live={false} items={[]} onRefresh={vi.fn()} view="page" />,
+      <Chat live={false} items={[]} onRefresh={vi.fn()} />,
     );
     expect(screen.getByText(/Your first conversation starts/)).toBeVisible();
     unmount();
     vi.mocked(service.fetchConversations).mockRejectedValueOnce(
       Error("History unavailable"),
     );
-    render(<Chat live items={[]} onRefresh={vi.fn()} view="page" />);
+    render(<Chat live items={[]} onRefresh={vi.fn()} />);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "History unavailable",
     );
@@ -311,7 +310,7 @@ describe("shared floating and full-page conversation", () => {
     vi.mocked(service.fetchConversation).mockRejectedValueOnce(
       Error("Conversation not found"),
     );
-    render(<Chat live items={[]} onRefresh={vi.fn()} view="page" />);
+    render(<Chat live items={[]} onRefresh={vi.fn()} />);
     const history = await screen.findByRole("navigation", {
       name: "Conversation history",
     });
@@ -324,20 +323,11 @@ describe("shared floating and full-page conversation", () => {
     fireEvent.click(select);
     await screen.findAllByText("Review the invoices.");
   });
-  it("supports closing and expanding the floating chat", () => {
-    const expand = vi.fn();
-    render(
-      <Chat live={false} items={[]} onRefresh={vi.fn()} onExpand={expand} />,
+  it("renders nothing outside the chat section", () => {
+    const { container } = render(
+      <Chat live={false} items={[]} onRefresh={vi.fn()} active={false} />,
     );
-    openFloating();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Open all conversations" }),
-    );
-    expect(expand).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Close chat" }));
-    expect(
-      screen.getByRole("button", { name: "Open chat with Saul" }),
-    ).toBeVisible();
+    expect(container).toBeEmptyDOMElement();
   });
 });
 describe("conversation lifecycle", () => {

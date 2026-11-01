@@ -56,8 +56,9 @@ the latest 10 messages. Older message text and tool pills remain. Tool pills app
 finished answer; this endpoint does not stream tool execution.
 
 Demo conversations use browser-only storage under `bcp-demo-chats-v1`, labelled
-`demo-rules`; live histories are never stored there. The floating chat and Chat
-screen share one mounted session, including unsent text and in-flight requests.
+`demo-rules`; live histories are never stored there. The Chat screen retains one
+mounted session across sidebar navigation, including unsent text and in-flight
+requests.
 Fresh assistant words fade in at 24 ms intervals (capped to a 1.4-second reveal)
 with a 180 ms fade; history stays still, and reduced motion shows text immediately.
 The card/pill presentation follows Goals Tracker and AVEC’s chat patterns.

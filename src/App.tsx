@@ -281,8 +281,7 @@ export default function App() {
             live={!!w.user}
             items={w.items}
             onRefresh={w.refresh}
-            view={page === "Chat" ? "page" : "floating"}
-            onExpand={() => navigate("Chat")}
+            active={page === "Chat"}
             onOpenReceipt={(id) => {
               const receipt = w.items.find((item) => item.id === id);
               if (receipt) setSelected(receipt);

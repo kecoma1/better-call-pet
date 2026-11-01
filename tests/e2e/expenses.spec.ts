@@ -45,7 +45,7 @@ test("review, post once, inspect ledger and open Saul", async ({ page }) => {
     page.getByRole("button", { name: "Already in your books" }),
   ).toBeDisabled();
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("button", { name: "Open chat with Saul" }).click();
+  await page.getByRole("button", { name: "Chat", exact: true }).click();
   await page
     .getByRole("textbox", { name: "Message Saul" })
     .fill("What needs attention?");
