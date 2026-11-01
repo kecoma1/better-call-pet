@@ -48,3 +48,26 @@ it.skipIf(!enabled).each([
   // Log only bounded public results from synthetic fixtures, never provider payloads.
   console.log(JSON.stringify({ draftCount: drafts.length, reply: reply.content, followUp: listed.messages.at(-1)!.content }));
 }, 180000);
+
+it.skipIf(!enabled)("saves a fictional demo company without asking for real legal details", async () => {
+  const input = { conversationId: crypto.randomUUID(), requestId: crypto.randomUUID(), message: "Guarda una empresa ficticia para la demo. Invéntate el nombre y fechas y usa valores de ejemplo. No tengo datos legales reales." };
+  const saved = await sendConversationMessage("synthetic-tool-check", input);
+  const company = state.docs.get("companies/primary");
+  expect(company.name).toMatch(/^DEMO/);
+  expect(company.number).toBe("");
+  expect(company.utr).toBe("");
+  expect(company.vatNumber).toBe("");
+  expect(saved.messages.at(-1)!.tools?.some((tool) => tool.name === "save_company")).toBe(true);
+  expect(saved.messages.at(-1)!.activity?.some((event) => event.kind === "tool_failed")).toBe(false);
+}, 120000);
+
+it.skipIf(!enabled)("illustrates an invented accounting scenario without saving records", async () => {
+  const input = { conversationId: crypto.randomUUID(), requestId: crypto.randomUUID(), message: "Para la demo, inventa un ejemplo de ingresos y gastos de una empresa ficticia y calcula su beneficio. Solo una simulación, no guardes nada." };
+  const saved = await sendConversationMessage("synthetic-tool-check", input);
+  const reply = saved.messages.at(-1)!;
+  expect(reply.content).toMatch(/demo|fictici|simula|ejemplo/i);
+  expect(reply.content).toMatch(/\d/);
+  expect(reply.tools?.some((tool) => tool.name === "create_receipt" || tool.name === "save_company")).not.toBe(true);
+  expect(state.docs.get("companies/primary")).toEqual(defaultCompany);
+  expect([...state.docs.keys()].some((key) => key.startsWith("expenses/") || key.startsWith("journals/"))).toBe(false);
+}, 120000);
