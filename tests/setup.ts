@@ -16,6 +16,7 @@ afterEach(() => {
   localStorage.clear();
 });
 Object.defineProperty(window, "matchMedia", {
+  configurable: true,
   value: () => ({
     matches: true,
     addEventListener: () => {},

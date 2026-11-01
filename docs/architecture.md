@@ -23,6 +23,8 @@ Use isolated branches/worktrees for simultaneous work. `App.tsx`, `style.css`, `
 
 ## Media contract
 
+The settings connection scene uses `saul-seated.webm`, a silent transparent VP9 video with a six-second smoking loop. Only the cigar hand and smoke move; the seated lower body stays fixed on the Dots. `saul-seated.webp` is the animated fallback if video playback fails, and `saul-seated.png` is the matching still for reduced motion or failed media. The scene scales as one composition, and the Dots stay stationary on hover so Saul keeps his seat.
+
 `public/chibi/saul-{idle,thinking,approved}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. `idle` smokes a cigar and is used by the floating launcher. Chat renders the character below the messages. Matching PNGs are static loading/reduced-motion variants. The approved base image is currently `saul-idle.png`; absent animations fall back to it. The HTML loader randomly chooses PNG states, with an idle fallback.
 
 Seedance cigar source generation already exists at `marketing/chibi/out/saul-cigar.mp4` in the shared working directory (ignored). Preserve the original approved character art. Generated task metadata can contain signed URLs and must stay ignored.

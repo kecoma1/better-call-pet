@@ -1,0 +1,3 @@
+Saul Goodman sitting still on the Dots, taking one calm puff, moving the cigar a short distance away and exhaling a small smoke curl before returning to the starting pose. Silent six-second loop; hips, resting hand, legs and shoes are held fixed. Transparent VP9 WebM video, animated WebP fallback, matching PNG for reduced motion.
+
+Generated using BytePlus ModelArk Seedance from the approved seated pixel-art character. The green-screen first and last reference are identical. Export: 416 x 554, 15 fps, 90 frames; last frame copies the first. Green background removed, spill cleaned, smoke fades before the canvas edge.
