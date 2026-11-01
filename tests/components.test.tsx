@@ -48,10 +48,9 @@ describe("foundation surfaces", () => {
   it("keeps entered fields and shows a failed classification beside the form", async () => {
     render(
       <ReceiptDialog
-        receipt="new"
+        open={true}
         live={false}
         onClose={vi.fn()}
-        onPost={vi.fn()}
         onAdd={vi.fn().mockRejectedValue(Error("Provider unavailable"))}
       />,
     );
@@ -92,7 +91,7 @@ describe("foundation surfaces", () => {
     expect(screen.getAllByText("£0.00", { exact: true })).toHaveLength(2);
   });
   it("renders the empty ledger without inventing entries", () => {
-    render(<Books items={[]} />);
+    render(<Books items={[]} onSelect={vi.fn()} />);
     expect(
       screen.getByText(/Approve a receipt to create your first journal/),
     ).toBeVisible();

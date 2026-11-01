@@ -12,8 +12,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
-import Saul from "../components/saul";
+import NotificationsBanner from "../components/notifications-banner";
 import ReceiptTable from "../components/receipt-table";
 import { money, type Receipt, type Company } from "../domain";
 export default function Overview({
@@ -50,45 +49,12 @@ export default function Overview({
           Add receipt
         </Button>
       </div>
-      <Card className="hero-card">
-        <CardContent className="hero-content">
-          <div>
-            <Badge variant="outline" className="hero-badge">
-              <span className="online-dot" />
-              YOUR ACCOUNTING SIDEKICK
-            </Badge>
-            <h2>
-              Good business.
-              <br />
-              Better bookkeeping.
-            </h2>
-            <p>
-              Every receipt has a story. Saul helps you work out
-              <br className="desktop" /> what’s deductible — and what needs a
-              second look.
-            </p>
-            <Button onClick={onAdd}>
-              Let’s sort a receipt <ArrowRight size={16} />
-            </Button>
-            <small>
-              <ShieldCheck size={13} />
-              One record. All your books in sync.
-            </small>
-          </div>
-          <div className="hero-art">
-            <div className="pixel-grid" />
-            <span className="floating-note note-one">
-              <CheckCheck size={14} />
-              Evidence checked
-            </span>
-            <Saul />
-            <span className="floating-note note-two">
-              “Let’s make it add up.”
-            </span>
-            <span className="art-caption">SAUL GOODMAN · ON YOUR SIDE</span>
-          </div>
-        </CardContent>
-      </Card>
+      <NotificationsBanner
+        items={items}
+        onSelect={onSelect}
+        onAdd={onAdd}
+        onNavigate={onNavigate}
+      />
       <div className="stat-grid">
         {[
           {

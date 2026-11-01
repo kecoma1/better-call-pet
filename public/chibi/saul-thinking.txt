@@ -1,0 +1,11 @@
+Saul pensando
+
+Saul revisa un recibo con expresión pensativa y una mano en la barbilla. Alterna la mirada entre el papel y el espectador y vuelve a su pose de reflexión.
+
+Uso previsto: Estado de revisión de un recibo o de preparación de una respuesta.
+
+Animación: saul-thinking.webp
+Imagen estática sin fondo: saul-thinking.png
+Formato: WebP animado transparente, 416 × 554 px, 15 fps, 6 segundos, loop infinito.
+Estilo: pixel art; Saul con traje azul de raya diplomática y corbata naranja.
+Crédito: animación generada con BytePlus ModelArk Seedance.

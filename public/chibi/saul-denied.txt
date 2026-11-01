@@ -1,0 +1,11 @@
+DENIED — pago rechazado
+
+Aparece el rótulo DENIED con una entrada de cómic. Saul mira el ticket con disgusto, lo arruga con ambas manos, deja caer la bola de papel junto al zapato y le da una patada para sacarla del plano. Después saca otro recibo y vuelve a su pose inicial.
+
+Uso previsto: Estado «rechazado» del filtrado de pagos.
+
+Animación: saul-denied.webp
+Imagen estática sin fondo: saul-denied.png
+Formato: WebP animado transparente, 416 × 554 px, 15 fps, 6 segundos, loop infinito.
+Estilo: pixel art; Saul con traje azul de raya diplomática y corbata naranja.
+Crédito: animación generada con BytePlus ModelArk Seedance.

@@ -1,0 +1,11 @@
+Saul fumando sin señalar
+
+Saul fuma un puro tranquilamente, con la mano libre guardada en el bolsillo durante todo el ciclo. Acerca el puro a la boca, da una calada y lo baja ligeramente mientras una pequeña voluta de humo se disipa junto a su cara. Mantiene una actitud relajada y vuelve a su pose inicial, sin señalar ni mostrar un recibo.
+
+Uso previsto: Variante de reposo para el botón flotante del chat; aporta variedad respecto al vídeo que alterna el puro con el gesto de señalar.
+
+Animación: saul-smoking.webp
+Imagen estática sin fondo: saul-smoking.png
+Formato: WebP animado transparente, 416 × 554 px, 15 fps, 6 segundos, loop infinito.
+Estilo: pixel art; Saul con traje azul de raya diplomática y corbata naranja.
+Crédito: animación generada con BytePlus ModelArk Seedance.
