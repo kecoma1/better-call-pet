@@ -32,6 +32,7 @@ import ReceiptTable from "./components/receipt-table";
 import ReceiptDialog from "./components/receipt-dialog";
 import ReceiptSheet from "./components/receipt-sheet";
 import Chat from "./components/chat";
+import Saul from "./components/saul";
 import type { Receipt } from "./domain";
 const navigation = [
   { name: "Chat", icon: MessageCircle },
@@ -69,7 +70,7 @@ export default function App() {
       {page !== "Chat" && (
         <aside className="sidebar">
           <a className="brand" href="/" aria-label="Better Call Pet home">
-            <img src="/logo.webp" alt="" />
+            <Saul state="seated" />
             <span>
               better call{" "}
               <strong>
