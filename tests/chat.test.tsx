@@ -288,11 +288,21 @@ describe("shared floating and full-page conversation", () => {
       expect(screen.getByLabelText("Message Saul")).toBeEnabled(),
     );
     send("VAT recovery");
+    expect(
+      screen.getByRole("img", {
+        name: "Saul Goodman writing and reading case files at his desk",
+      }),
+    ).toBeVisible();
     const signal = vi.mocked(service.sendConversationMessage).mock.calls[0][3]!;
     rerender(<Chat {...props} view="floating" />);
     openFloating();
     expect(signal.aborted).toBe(false);
     await act(async () => finish());
+    expect(
+      screen.queryByRole("img", {
+        name: "Saul Goodman writing and reading case files at his desk",
+      }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("article", { name: "Saul’s reply" }),
     ).toHaveTextContent("Review the invoices.");

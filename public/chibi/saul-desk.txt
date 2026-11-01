@@ -1,0 +1,10 @@
+Saul trabajando en su escritorio — loop cómico de carga
+
+Saul escribe frenéticamente, examina una hoja de un caso, lee con la mejilla apoyada en la mano, tiene una idea y levanta el dedo, y vuelve a escribir. Cámara fija; el escritorio, las carpetas y los pies permanecen quietos. El último fotograma coincide con el primero para repetir el ciclo sin salto.
+
+Uso: mientras el chat prepara una respuesta o carga una conversación.
+Vídeo: saul-desk.webm, VP9 transparente, sin audio, 416 × 554, 15 fps, seis segundos.
+Fallback animado: saul-desk.webp, loop infinito.
+Movimiento reducido: saul-desk.png.
+Referencia de personaje preparada con ImageGen; animación generada con BytePlus ModelArk Seedance.
+Prompt y exportación reproducible: marketing/chibi/prompts/saul-desk.txt y marketing/chibi/export-desk-loop.py.

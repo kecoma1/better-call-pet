@@ -72,10 +72,13 @@ export default function ChatThread({
           </>
         )}
         {(w.busy || w.loading) && (
-          <p className="chat-status" role="status">
-            <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-            {w.busy ? "Reading the fine print…" : "Opening conversations…"}
-          </p>
+          <div className="chat-status chat-loading" role="status">
+            <Saul state="desk" className="chat-loading-saul" />
+            <span className="chat-status-label">
+              <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+              {w.busy ? "Reading the fine print…" : "Opening conversations…"}
+            </span>
+          </div>
         )}
         <div ref={bottom} />
       </div>

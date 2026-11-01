@@ -379,3 +379,24 @@ main.chat-main {
 .chat-activity-panel[open] > .chat-activity {
   margin-top: 10px;
 }
+
+.chat-loading {
+  flex-direction: column;
+  align-self: center;
+  flex-shrink: 0;
+  padding: 12px 0;
+  gap: 8px;
+}
+.chat-loading-saul {
+  width: auto;
+  height: clamp(110px, 27dvh, 208px);
+  aspect-ratio: 416 / 554;
+}
+.chat-status-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}

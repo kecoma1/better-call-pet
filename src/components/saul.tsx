@@ -12,30 +12,48 @@ export default function Saul({
   state = "idle",
   className = "",
 }: {
-  state?: "idle" | "smoking" | "thinking" | "approved" | "seated" | "pacing" | "phone";
+  state?:
+    | "idle"
+    | "smoking"
+    | "thinking"
+    | "approved"
+    | "seated"
+    | "pacing"
+    | "phone"
+    | "desk";
   className?: string;
 }) {
   const [failedSource, setFailedSource] = useState<string | null>(null);
-  const [failedVideo, setFailedVideo] = useState(false);
+  const [failedVideoSource, setFailedVideoSource] = useState<string | null>(
+    null,
+  );
+  const video =
+    state === "seated" || state === "desk"
+      ? "/chibi/saul-" + state + ".webm"
+      : null;
+  const videoLabel =
+    state === "desk"
+      ? "Saul Goodman writing and reading case files at his desk"
+      : "Saul Goodman sitting with your Dots";
   const animation = "/chibi/saul-" + state + ".webp";
   const reduce = useSyncExternalStore(
     subscribeToMotion,
     prefersReducedMotion,
     () => true,
   );
-  if (state === "seated" && !reduce && !failedVideo) {
+  if (video && !reduce && failedVideoSource !== video) {
     return (
       <video
         className={"saul " + className}
-        src="/chibi/saul-seated.webm"
-        poster="/chibi/saul-seated.png"
+        src={video}
+        poster={"/chibi/saul-" + state + ".png"}
         autoPlay
         loop
         muted
         playsInline
         role="img"
-        aria-label="Saul Goodman sitting with your Dots"
-        onError={() => setFailedVideo(true)}
+        aria-label={videoLabel}
+        onError={() => setFailedVideoSource(video)}
         width={416}
         height={554}
       />
@@ -51,17 +69,19 @@ export default function Saul({
       }
       onError={() => setFailedSource(animation)}
       alt={
-        state === "phone"
-          ? "Saul Goodman talking on the phone"
-          : state === "pacing"
-          ? "Saul Goodman walking from left to right"
-          : state === "seated"
-            ? "Saul Goodman sitting with your Dots"
-            : state === "smoking"
-              ? "Saul Goodman smoking a cigar"
-              : state === "thinking"
-                ? "Saul is thinking"
-                : "Saul Goodman, your accounting companion"
+        state === "desk"
+          ? videoLabel
+          : state === "phone"
+            ? "Saul Goodman talking on the phone"
+            : state === "pacing"
+              ? "Saul Goodman walking from left to right"
+              : state === "seated"
+                ? "Saul Goodman sitting with your Dots"
+                : state === "smoking"
+                  ? "Saul Goodman smoking a cigar"
+                  : state === "thinking"
+                    ? "Saul is thinking"
+                    : "Saul Goodman, your accounting companion"
       }
       width={416}
       height={554}
