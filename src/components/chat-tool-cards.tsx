@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowUpRight, Check, Wrench } from "lucide-react";
+import { useId, useState } from "react";
+import { ArrowUpRight, Check, ChevronDown, Wrench } from "lucide-react";
 import { money, type ChatToolResult } from "../domain";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
@@ -21,20 +21,49 @@ export default function ChatToolCards({
   onOpenReceipt?: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [expandedCompany, setExpandedCompany] = useState<number | null>(null);
+  const companyId = useId();
   return (
     <div className="chat-tool-results">
       <div
         className="chat-tool-pills"
         aria-label={demo ? "Demo tool examples" : "Tools used"}
       >
-        {tools.map((tool, index) => (
-          <Badge key={index} variant="outline">
-            <Wrench size={11} aria-hidden="true" />
-            {demo ? "Demo · " : ""}
-            {labels[tool.name]}
-            <Check size={11} aria-hidden="true" />
-          </Badge>
-        ))}
+        {tools.map((tool, index) => {
+          const label = (
+            <>
+              <Wrench size={11} aria-hidden="true" />
+              {demo ? "Demo · " : ""}
+              {labels[tool.name]}
+              <Check size={11} aria-hidden="true" />
+            </>
+          );
+          return tool.name === "get_company" && tool.company ? (
+            <Button
+              key={index}
+              type="button"
+              variant="outline"
+              size="xs"
+              className="h-auto rounded-full px-2 py-0.5 text-[9px] font-normal text-muted-foreground"
+              aria-expanded={expandedCompany === index}
+              aria-controls={`${companyId}-${index}`}
+              onClick={() =>
+                setExpandedCompany(expandedCompany === index ? null : index)
+              }
+            >
+              {label}
+              <ChevronDown
+                size={11}
+                aria-hidden="true"
+                className={expandedCompany === index ? "rotate-180" : undefined}
+              />
+            </Button>
+          ) : (
+            <Badge key={index} variant="outline">
+              {label}
+            </Badge>
+          );
+        })}
       </div>
       {tools.map((tool, index) => (
         <div key={index}>
@@ -100,27 +129,28 @@ export default function ChatToolCards({
               </CardContent>
             </Card>
           )}
-          {tool.company && (
-            <Card className="chat-result-card">
-              <CardContent>
-                <strong>{tool.company.name}</strong>
-                <dl>
-                  <div>
-                    <dt>VAT registration</dt>
-                    <dd>
-                      {tool.company.vatRegistered
-                        ? "Registered"
-                        : "Not registered"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Year end</dt>
-                    <dd>{tool.company.yearEnd}</dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-          )}
+          {tool.company &&
+            (tool.name !== "get_company" || expandedCompany === index) && (
+              <Card className="chat-result-card" id={`${companyId}-${index}`}>
+                <CardContent>
+                  <strong>{tool.company.name}</strong>
+                  <dl>
+                    <div>
+                      <dt>VAT registration</dt>
+                      <dd>
+                        {tool.company.vatRegistered
+                          ? "Registered"
+                          : "Not registered"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Year end</dt>
+                      <dd>{tool.company.yearEnd}</dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+            )}
         </div>
       ))}
     </div>
