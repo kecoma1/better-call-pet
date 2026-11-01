@@ -27,7 +27,7 @@ Use isolated branches/worktrees for simultaneous work. `App.tsx`, `style.css`, `
 
 ## Media contract
 
-`public/chibi/saul-{idle,thinking,approved}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. `idle` smokes a cigar and is used by the floating launcher. Chat renders the character below the messages. Matching PNGs are static loading/reduced-motion variants. The approved base image is currently `saul-idle.png`; absent animations fall back to it. The HTML loader randomly chooses PNG states, with an idle fallback.
+`public/chibi/saul-{idle,smoking,thinking,approved}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. The floating chat launcher explicitly uses `smoking`, the relaxed cigar-only clip. The notifications banner uses `thinking` for pending work and `approved` when caught up, so it never shares the launcher's animation. Inside chat, Saul appears below the messages with `idle`, `thinking` or `approved` according to conversation state. Each state has its own matching PNG for reduced motion or failed animation loads; errors are scoped to the failed animation. The HTML loader randomly chooses PNG states, with an idle fallback.
 
 Seedance cigar source generation already exists at `marketing/chibi/out/saul-cigar.mp4` in the shared working directory (ignored). Preserve the original approved character art. Generated task metadata can contain signed URLs and must stay ignored.
 

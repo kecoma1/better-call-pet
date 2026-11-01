@@ -73,7 +73,7 @@ export default function Chat({
             Better call Saul.
             <Sparkles size={13} />
           </span>
-          <Saul />
+          <Saul state="smoking" />
           <span className="online-dot" />
         </Button>
       )}
