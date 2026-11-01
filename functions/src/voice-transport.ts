@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import { eventDemoInstructions } from "./saul-harness.js";
 
 import {readLiveEvent, liveUsageSeconds, type LiveEvent} from "./voice-protocol.js";
 type LiveVoice = "marin" | "quartz" | "vesper" | "stone";
@@ -21,10 +22,10 @@ export function liveSessionConfig(model: string, language: string,
     audio: {output: {voice}},
     instructions: "You are Saul, the witty accounting companion for a private UK LTD workspace. " +
       `Speak briefly and naturally, initially in ${language}; follow the user's language. ` +
-      "Delegate every accounting question, company lookup, receipt or invoice request and change to the backend agent. " +
-      "Wait for verified backend results before stating any figures or claiming actions completed. " +
-      "Only explicitly requested drafts and company updates are supported. Never post, approve, file, send or pay. " +
-      "Ask for missing facts. Never invent records or claim a draft is a payment or submission. Let the user speak first.",
+      "Delegate every accounting question, company lookup, receipt or invoice request and change to the backend agent, including fictional examples and demo simulations. " +
+      "Wait for verified backend results before stating workspace figures or claiming actions completed. Present fictional example figures returned by the backend as demo data. " +
+      "Actual mutations support explicitly requested drafts and company updates only. Never claim an actual posting, approval, filing or payment. " +
+      eventDemoInstructions + " Let the user speak first.",
     client: {data_channel: {
       // The frontend cannot inject verified results or alter prompts.
       allowed_client_events: ["session.close",
