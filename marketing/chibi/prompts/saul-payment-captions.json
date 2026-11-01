@@ -1,0 +1,35 @@
+{
+  "accepted": "ACCEPTED",
+  "denied": "DENIED",
+  "style": "Quarter-resolution stepped pixel type inside a black-outlined cream comic burst. Accepted letters gold, denied letters red.",
+  "font": "Menlo Bold, 14px rendered as a one-bit bitmap and enlarged with nearest-neighbour.",
+  "animation": "Caption pops into place after frame zero, settles, then disappears before the identical last frame.",
+  "source_assets": [
+    "marketing/chibi/source/saul-accepted-comic.png",
+    "marketing/chibi/source/saul-denied-comic.png"
+  ],
+  "size_px": [
+    340,
+    64
+  ],
+  "center_px": [
+    208,
+    38
+  ],
+  "accepted_frames": [
+    8,
+    60
+  ],
+  "denied_frames": [
+    6,
+    78
+  ],
+  "pop_scale_sequence": [
+    0.45,
+    0.72,
+    0.95,
+    1.02,
+    1.0
+  ],
+  "fade_out_frames": 6
+}

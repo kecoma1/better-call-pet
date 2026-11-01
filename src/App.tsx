@@ -15,6 +15,7 @@ import {
   LogIn,
   LogOut,
   ArrowUpRight,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -29,9 +30,11 @@ import Settings from "./pages/settings";
 import Connect from "./pages/connect";
 import ReceiptTable from "./components/receipt-table";
 import ReceiptDialog from "./components/receipt-dialog";
+import ReceiptSheet from "./components/receipt-sheet";
 import Chat from "./components/chat";
 import type { Receipt } from "./domain";
 const navigation = [
+  { name: "Chat", icon: MessageSquare },
   { name: "Overview", icon: LayoutDashboard },
   { name: "Receipts", icon: ReceiptText },
   { name: "Bookkeeping", icon: BookOpen },
@@ -41,7 +44,7 @@ const navigation = [
 ];
 export default function App() {
   const w = useWorkspace();
-  const [page, setPage] = useState("Overview"),
+  const [page, setPage] = useState("Chat"),
     [collapsed, setCollapsed] = useState(
       () => localStorage.getItem("bcp-sidebar") === "1",
     ),
@@ -56,7 +59,13 @@ export default function App() {
   if (location.pathname === "/connect")
     return <Connect live={!!w.user} onLogin={w.login} />;
   return (
-    <div className={"app-shell " + (collapsed ? "collapsed" : "")}>
+    <div
+      className={
+        "app-shell " +
+        (collapsed ? "collapsed " : "") +
+        (page === "Chat" ? "chat-active" : "")
+      }
+    >
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="Better Call Pet home">
           <img src="/favicon.svg" alt="" />
@@ -180,7 +189,13 @@ export default function App() {
               <span className="online-dot" />
               {w.user ? "Live workspace" : "Demo mode"}
             </Badge>
-            <Button variant="ghost" size="icon" className="mobile-settings" aria-label="Open settings" onClick={() => navigate("Settings")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mobile-settings"
+              aria-label="Open settings"
+              onClick={() => navigate("Settings")}
+            >
               <SettingsIcon size={16} />
             </Button>
             {!w.user && (
@@ -196,7 +211,7 @@ export default function App() {
             )}
           </div>
         </header>
-        <main>
+        <main className={page === "Chat" ? "chat-main" : undefined}>
           {w.error && (
             <div role="alert" className="error app-error">
               {w.error}
@@ -205,11 +220,19 @@ export default function App() {
               </Button>
             </div>
           )}
+          <div className="chat-view" hidden={page !== "Chat" || w.loading}>
+            <Chat
+              key={w.user?.uid || "demo"}
+              live={!!w.user}
+              items={w.items}
+              onRefresh={w.refresh}
+            />
+          </div>
           {w.loading ? (
             <p role="status" className="empty">
               Opening your workspace…
             </p>
-          ) : page === "Overview" ? (
+          ) : page === "Chat" ? null : page === "Overview" ? (
             <Overview
               items={w.items}
               company={w.company}
@@ -276,7 +299,7 @@ export default function App() {
               </Card>
             </>
           ) : page === "Bookkeeping" ? (
-            <Books items={w.items} />
+            <Books items={w.items} onSelect={setSelected} />
           ) : page === "Settings" ? (
             <Settings company={w.company} onSave={w.save} live={!!w.user} />
           ) : (
@@ -285,18 +308,17 @@ export default function App() {
         </main>
       </div>
       <ReceiptDialog
-        key={selected === "new" ? "new" : selected?.id || "closed"}
-        receipt={selected}
+        key={selected === "new" ? "new" : "closed"}
+        open={selected === "new"}
         onClose={() => setSelected(null)}
         onAdd={w.add}
-        onPost={w.post}
         live={!!w.user}
       />
-      <Chat
-        key={w.user?.uid || "demo"}
-        live={!!w.user}
-        items={w.items}
-        onRefresh={w.refresh}
+      <ReceiptSheet
+        key={selected && selected !== "new" ? selected.id : "no-selection"}
+        receipt={selected && selected !== "new" ? selected : null}
+        onClose={() => setSelected(null)}
+        onPost={w.post}
       />
     </div>
   );

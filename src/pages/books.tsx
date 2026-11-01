@@ -11,10 +11,22 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { journal, money, type Receipt } from "../domain";
-export default function Books({ items }: { items: Receipt[] }) {
+export default function Books({
+  items,
+  onSelect,
+}: {
+  items: Receipt[];
+  onSelect: (receipt: Receipt) => void;
+}) {
   const posted = items.filter((r) => r.status === "posted");
   const lines = posted.flatMap((r) =>
-    journal(r).map((l) => ({ ...l, id: r.id, date: r.date, vendor: r.vendor })),
+    journal(r).map((l) => ({
+      ...l,
+      id: r.id,
+      date: r.date,
+      vendor: r.vendor,
+      receipt: r,
+    })),
   );
   const debit = lines.reduce((n, l) => n + l.debit, 0),
     credit = lines.reduce((n, l) => n + l.credit, 0);
@@ -92,7 +104,28 @@ export default function Books({ items }: { items: Receipt[] }) {
             </TableHeader>
             <TableBody>
               {lines.map((l, i) => (
-                <TableRow key={i}>
+                <TableRow
+                  key={i}
+                  className="detail-row"
+                  tabIndex={0}
+                  aria-label={
+                    "View journal details for " + l.vendor + ", " + l.account
+                  }
+                  aria-haspopup="dialog"
+                  onClick={(event) => {
+                    event.currentTarget.focus();
+                    onSelect(l.receipt);
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      event.target === event.currentTarget &&
+                      (event.key === "Enter" || event.key === " ")
+                    ) {
+                      event.preventDefault();
+                      onSelect(l.receipt);
+                    }
+                  }}
+                >
                   <TableCell>
                     {l.date}
                     <small className="block muted">{l.vendor}</small>

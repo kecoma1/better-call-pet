@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, X, Sparkles, Loader2 } from "lucide-react";
+import { ArrowUp, SquarePen, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
 import Saul from "./saul";
 import { sendChat } from "../services/workspace";
 import { money, type Receipt } from "../domain";
+
 export default function Chat({
   live,
   items,
@@ -15,23 +16,25 @@ export default function Chat({
   items: Receipt[];
   onRefresh: () => Promise<void>;
 }) {
-  const [open, setOpen] = useState(false),
-    [messages, setMessages] = useState<
+  const [messages, setMessages] = useState<
       { role: "user" | "assistant"; content: string }[]
-    >([
-      {
-        role: "assistant",
-        content:
-          "Hey, I’m Saul. You handle the business. I’ll help with the fine print. What are we looking at?",
-      },
-    ]),
+    >([]),
     [text, setText] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
+  const conversation = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const empty = messages.length === 0;
+
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (messages.length > 0) {
+      bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else if (conversation.current) {
+      conversation.current.scrollTop = 0;
+    }
   }, [messages, busy]);
+
   async function send(value: string) {
     if (!value.trim() || busy) return;
     const next = [
@@ -55,121 +58,129 @@ export default function Chat({
       }
       setMessages([...next, { role: "assistant", content: reply }]);
     } catch (e) {
+      setMessages(messages);
+      setText(value.trim());
       setError((e as Error).message);
     } finally {
       setBusy(false);
+      input.current?.focus();
     }
   }
+
   return (
-    <>
-      {!open && (
+    <section className="chat-page" aria-label="Chat with Saul">
+      <header className="chat-header">
+        <div>
+          <strong>Saul’s office</strong>
+          <small>
+            <span className="online-dot" />
+            {live ? "Your accounting companion" : "Demo conversation"}
+          </small>
+        </div>
         <Button
-          className="saul-launcher"
           variant="ghost"
-          aria-label="Open chat with Saul"
-          onClick={() => setOpen(true)}
+          size="sm"
+          disabled={busy}
+          onClick={() => {
+            setMessages([]);
+            setText("");
+            setError("");
+            input.current?.focus();
+          }}
         >
-          <span className="chat-invite">
-            Better call Saul.
-            <Sparkles size={13} />
-          </span>
-          <Saul />
-          <span className="online-dot" />
+          <SquarePen size={15} />
+          New conversation
         </Button>
-      )}
-      {open && (
-        <section className="chat-panel" aria-label="Chat with Saul">
-          <header>
-            <div>
-              <span className="online-dot" />
-              <strong>Saul’s office</strong>
-              <small>
-                {live
-                  ? "gpt-6-luna · your accounting companion"
-                  : "Demo conversation"}
-              </small>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Close chat"
-              onClick={() => setOpen(false)}
-            >
-              <X />
-            </Button>
-          </header>
-          <div className="chat-messages" aria-live="polite">
+      </header>
+      <div
+        ref={conversation}
+        className={"chat-messages" + (empty ? " is-empty" : "")}
+        role="log"
+        aria-label="Conversation"
+        aria-live="polite"
+      >
+        {empty ? (
+          <div className="chat-empty">
+            <Saul className="chat-empty-saul" state="pacing" />
+            <p className="eyebrow">BETTER CALL SAUL</p>
+            <h1>Let’s talk business.</h1>
+            <p>You handle the business. I’ll help with the fine print.</p>
+          </div>
+        ) : (
+          <>
             {messages.map((m, i) => (
               <div key={i} className={"message " + m.role}>
                 {m.content}
               </div>
             ))}
             {busy && (
-              <div className="message assistant">
+              <div className="message assistant" role="status">
                 <Loader2 size={14} className="animate-spin" />
                 Reading the fine print…
               </div>
             )}
-            <Saul
-              className="chat-saul"
-              state={
-                busy ? "thinking" : messages.length > 1 ? "approved" : "idle"
-              }
-            />
-            <div ref={bottom} />
-          </div>
-          {messages.length === 1 && (
-            <div className="chat-suggestions">
+            <Saul className="chat-saul" state={busy ? "thinking" : "approved"} />
+          </>
+        )}
+        <div ref={bottom} />
+      </div>
+      {empty && (
+        <div className="chat-suggestions">
+          {["What needs my attention?", "What VAT can I reclaim?"].map(
+            (suggestion) => (
               <Button
+                key={suggestion}
                 variant="outline"
                 size="sm"
-                onClick={() => void send("What needs my attention?")}
+                onClick={() => void send(suggestion)}
               >
-                What needs my attention?
+                {suggestion}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void send("What VAT can I reclaim?")}
-              >
-                What VAT can I reclaim?
-              </Button>
-            </div>
+            ),
           )}
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
-          <form
-            onSubmit={(e) => {
+        </div>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <form
+        className="chat-composer"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void send(text);
+        }}
+      >
+        <Label htmlFor="chat-input" className="sr-only">
+          Message Saul
+        </Label>
+        <Textarea
+          ref={input}
+          id="chat-input"
+          rows={1}
+          value={text}
+          maxLength={5000}
+          disabled={busy}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               void send(text);
-            }}
-          >
-            <Label htmlFor="chat-input" className="sr-only">
-              Message Saul
-            </Label>
-            <Input
-              id="chat-input"
-              value={text}
-              maxLength={5000}
-              disabled={busy}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Ask Saul anything about your books…"
-            />
-            <Button
-              size="icon"
-              type="submit"
-              aria-label="Send message"
-              disabled={busy || !text.trim()}
-            >
-              <ArrowUp />
-            </Button>
-          </form>
-          <footer>Helpful guidance. You approve the numbers.</footer>
-        </section>
-      )}
-    </>
+            }
+          }}
+          placeholder="Ask Saul about your books…"
+        />
+        <Button
+          size="icon"
+          type="submit"
+          aria-label="Send message"
+          disabled={busy || !text.trim()}
+        >
+          <ArrowUp />
+        </Button>
+      </form>
+      <footer>Helpful guidance. You approve the numbers.</footer>
+    </section>
   );
 }

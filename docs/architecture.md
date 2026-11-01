@@ -6,6 +6,10 @@
 
 `Agent or MCP → sharedTools → same domain service`.
 
+Clicking an expense row (overview or receipts) or a ledger row opens the shared `ReceiptSheet` on the right. Rows support Enter/Space and restore keyboard focus when dismissed. Creating a new expense continues to use `ReceiptDialog`; accounting actions and VAT restrictions are shared with the existing posting service.
+
+The overview's Saul banner is the expense notifications area. `src/lib/notifications.ts` derives current work from review-state expenses: missing invoice evidence, VAT reviews, then expenses awaiting approval. `NotificationsBanner` lets users browse these groups and open the relevant expense sheet. Posting updates the banner immediately. These are current-work notifications; there is no push delivery, unread status or notification history yet.
+
 The Google account configured as `INTERNAL_ADMIN_EMAIL` can enroll as the first internal admin. Other accounts require an existing active `/users/{uid}` membership. Revoking membership also blocks OAuth access. The company and all expenses are shared internally.
 
 ## Stable boundaries for parallel development
@@ -23,7 +27,7 @@ Use isolated branches/worktrees for simultaneous work. `App.tsx`, `style.css`, `
 
 ## Media contract
 
-`public/chibi/saul-{idle,thinking,approved}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. `idle` smokes a cigar and is used by the floating launcher. Chat renders the character below the messages. Matching PNGs are static loading/reduced-motion variants. The approved base image is currently `saul-idle.png`; absent animations fall back to it. The HTML loader randomly chooses PNG states, with an idle fallback.
+`public/chibi/saul-{idle,smoking,thinking,approved,pacing}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. Chat is the default workspace page, with Overview available from the sidebar. Empty and new conversations show `pacing`, Saul walking left to right. The full-page chat uses `thinking` while waiting and `approved` after a reply. New conversation clears the messages, draft and error; navigating between workspace pages preserves the current conversation in memory. Signing in or out resets it. The notifications banner uses `thinking` for pending work and `approved` when caught up. Each state has its own matching PNG for reduced motion or failed animation loads; errors are scoped to the failed animation. The HTML loader randomly chooses PNG states, with an idle fallback.
 
 Seedance cigar source generation already exists at `marketing/chibi/out/saul-cigar.mp4` in the shared working directory (ignored). Preserve the original approved character art. Generated task metadata can contain signed URLs and must stay ignored.
 

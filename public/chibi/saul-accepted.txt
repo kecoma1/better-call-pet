@@ -1,0 +1,11 @@
+ACCEPTED — pago aceptado
+
+Aparece el rótulo ACCEPTED con una entrada de cómic. Los dos ojos de Saul se transforman en símbolos de dólar dorados mientras sonríe, muestra el recibo y mantiene el pulgar arriba. Después recupera sus ojos normales y desaparece el rótulo.
+
+Uso previsto: Estado «aceptado» del filtrado de pagos.
+
+Animación: saul-accepted.webp
+Imagen estática sin fondo: saul-accepted.png
+Formato: WebP animado transparente, 416 × 554 px, 15 fps, 6 segundos, loop infinito.
+Estilo: pixel art; Saul con traje azul de raya diplomática y corbata naranja.
+Crédito: animación generada con BytePlus ModelArk Seedance.
