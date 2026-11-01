@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   ReceiptText,
@@ -7,7 +7,6 @@ import {
   Landmark,
   Percent,
   Settings as SettingsIcon,
-  ChevronsUpDown,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -22,6 +21,7 @@ import { Label } from "./components/ui/label";
 import { Card, CardContent } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
 import { useWorkspace } from "./hooks/use-workspace";
+import WorkspaceSwitcher from "./components/workspace-switcher";
 import Overview from "./pages/overview";
 import Books from "./pages/books";
 import Reports from "./pages/reports";
@@ -48,6 +48,12 @@ export default function App() {
     [selected, setSelected] = useState<Receipt | "new" | null>(null),
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("All receipts");
+  const workspaceKey = w.live ? w.user!.uid : "demo";
+  useEffect(() => {
+    setSelected(null);
+    setSearch("");
+    setFilter("All receipts");
+  }, [workspaceKey]);
   const waiting = w.items.filter((r) => r.status === "review").length;
   const navigate = (p: string) => {
     setPage(p);
@@ -67,14 +73,12 @@ export default function App() {
             </strong>
           </span>
         </a>
-        <div className="company-switch">
-          <span className="company-avatar">{w.company.name.slice(0, 1)}</span>
-          <div>
-            <strong>{w.company.name}</strong>
-            <small>Company workspace</small>
-          </div>
-          <ChevronsUpDown size={14} />
-        </div>
+        <WorkspaceSwitcher
+          companyName={w.company.name}
+          live={w.live}
+          onSwitch={w.switchMode}
+          onError={w.setError}
+        />
         <span className="nav-caption">WORKSPACE</span>
         <nav aria-label="Main navigation">
           {navigation.map(({ name, icon: Icon }) => (
@@ -178,20 +182,20 @@ export default function App() {
             </span>
             <Badge variant="outline" className="workspace-mode">
               <span className="online-dot" />
-              {w.user ? "Live workspace" : "Demo mode"}
+              {w.live ? "Live workspace" : "Demo mode"}
             </Badge>
             <Button variant="ghost" size="icon" className="mobile-settings" aria-label="Open settings" onClick={() => navigate("Settings")}>
               <SettingsIcon size={16} />
             </Button>
-            {!w.user && (
+            {!w.live && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() =>
-                  void w.login().catch((e) => w.setError(e.message))
+                  void w.switchMode("live").catch((e) => w.setError(e.message))
                 }
               >
-                Sign in <ArrowUpRight size={14} />
+                {w.user ? "Back to live" : "Sign in"} <ArrowUpRight size={14} />
               </Button>
             )}
           </div>
@@ -278,23 +282,28 @@ export default function App() {
           ) : page === "Bookkeeping" ? (
             <Books items={w.items} />
           ) : page === "Settings" ? (
-            <Settings company={w.company} onSave={w.save} live={!!w.user} />
+            <Settings
+              key={workspaceKey}
+              company={w.company}
+              onSave={w.save}
+              live={w.live}
+            />
           ) : (
             <Reports page={page} items={w.items} company={w.company} />
           )}
         </main>
       </div>
       <ReceiptDialog
-        key={selected === "new" ? "new" : selected?.id || "closed"}
+        key={workspaceKey + ":" + (selected === "new" ? "new" : selected?.id || "closed")}
         receipt={selected}
         onClose={() => setSelected(null)}
         onAdd={w.add}
         onPost={w.post}
-        live={!!w.user}
+        live={w.live}
       />
       <Chat
-        key={w.user?.uid || "demo"}
-        live={!!w.user}
+        key={workspaceKey}
+        live={w.live}
         items={w.items}
         onRefresh={w.refresh}
       />

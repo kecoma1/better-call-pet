@@ -194,6 +194,8 @@ p {
 }
 .company-switch {
   display: flex;
+  width: 100%;
+  height: auto;
   align-items: center;
   gap: 10px;
   padding: 12px 10px;
@@ -201,9 +203,11 @@ p {
   border-radius: 9px;
   margin-bottom: 30px;
 }
-.company-switch > div {
+.company-switch [data-slot="select-value"] {
+  display: block;
   min-width: 0;
   flex: 1;
+  text-align: left;
 }
 .company-switch strong,
 .company-switch small {
@@ -1387,13 +1391,20 @@ button[data-slot="select-trigger"] {
   padding: 0 5px;
 }
 .collapsed .brand > span,
-.collapsed .company-switch,
 .collapsed .nav-caption,
 .collapsed .nav-button > span,
 .collapsed .nav-button > [data-slot="badge"],
 .collapsed .sidebar-tip,
 .collapsed .sidebar-profile > div,
 .collapsed .sidebar-profile > .profile-avatar {
+  display: none;
+}
+.collapsed .company-switch {
+  justify-content: center;
+  padding: 7px;
+}
+.collapsed .company-switch [data-slot="select-value"],
+.collapsed .company-switch > svg {
   display: none;
 }
 .collapsed .nav-button {
@@ -1504,10 +1515,19 @@ button[data-slot="select-trigger"] {
   .collapsed .brand > span {
     display: block;
   }
-  .company-switch,
   .nav-caption,
   .sidebar-bottom {
     display: none;
+  }
+  .company-switch,
+  .collapsed .company-switch {
+    justify-content: space-between;
+    padding: 12px 10px;
+    margin-bottom: 16px;
+  }
+  .collapsed .company-switch [data-slot="select-value"],
+  .collapsed .company-switch > svg {
+    display: block;
   }
   .sidebar nav {
     flex-direction: row;

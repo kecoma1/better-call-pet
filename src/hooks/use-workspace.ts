@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth, signIn } from "../firebase";
 import {
@@ -11,7 +11,9 @@ import {
   type Company,
 } from "../domain";
 import * as service from "../services/workspace";
-function localDemo() {
+export type WorkspaceMode = "live" | "demo";
+type Workspace = { receipts: Receipt[]; company: Company };
+function localDemo(): Workspace {
   try {
     const d = JSON.parse(localStorage.getItem("bcp-demo-v1") || "null");
     if (d && Array.isArray(d.receipts) && d.company) return d;
@@ -20,39 +22,54 @@ function localDemo() {
 }
 export function useWorkspace() {
   const [user, setUser] = useState<User | null>(null),
-    [items, setItems] = useState<Receipt[]>(() => localDemo().receipts),
-    [company, setCompany] = useState<Company>(() => localDemo().company),
+    [mode, setMode] = useState<WorkspaceMode>(() => {
+      try {
+        return localStorage.getItem("bcp-workspace-mode") === "demo"
+          ? "demo"
+          : "live";
+      } catch {
+        return "live";
+      }
+    }),
+    [demo, setDemo] = useState<Workspace>(localDemo),
+    [workspace, setWorkspace] = useState<Workspace>({
+      receipts: [],
+      company: defaultCompany,
+    }),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false);
+  const live = !!user && mode === "live";
+  const workspaceKey = live ? user.uid : "demo";
+  const activeWorkspace = useRef(workspaceKey);
+  activeWorkspace.current = workspaceKey;
+  const { receipts: items, company } = live ? workspace : demo;
   useEffect(
     () =>
       auth
         ? onAuthStateChanged(auth, (u) => {
             setUser(u);
-            if (!u) {
-              const d = localDemo();
-              setItems(d.receipts);
-              setCompany(d.company);
-            } else {
-              setItems([]);
-              setCompany(defaultCompany);
-            }
+            setWorkspace({ receipts: [], company: defaultCompany });
           })
         : undefined,
     [],
   );
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
-      if (!user) return;
+      if (!live || !user || activeWorkspace.current !== user.uid) return;
       const d = await service.fetchWorkspace(signal);
-      if (auth?.currentUser?.uid !== user.uid || signal?.aborted) return;
-      setItems(d.receipts);
-      setCompany(d.company);
+      if (
+        activeWorkspace.current !== user.uid ||
+        auth?.currentUser?.uid !== user.uid ||
+        signal?.aborted
+      )
+        return;
+      setWorkspace(d);
     },
-    [user],
+    [live, user],
   );
   useEffect(() => {
-    if (!user) return;
+    setError("");
+    if (!live) return;
     const c = new AbortController();
     setLoading(true);
     refresh(c.signal)
@@ -63,18 +80,27 @@ export function useWorkspace() {
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [refresh, user]);
+  }, [refresh, live]);
   useEffect(() => {
-    if (!user)
-      try {
-        localStorage.setItem(
-          "bcp-demo-v1",
-          JSON.stringify({ receipts: items, company }),
-        );
-      } catch {}
-  }, [items, company, user]);
+    try {
+      localStorage.setItem("bcp-demo-v1", JSON.stringify(demo));
+    } catch {}
+  }, [demo]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("bcp-workspace-mode", mode);
+    } catch {}
+  }, [mode]);
+  async function login() {
+    await signIn();
+    setMode("live");
+  }
+  async function switchMode(next: WorkspaceMode) {
+    if (next === "live" && !user) await login();
+    else setMode(next);
+  }
   async function add(input: ReceiptInput) {
-    if (user) {
+    if (live) {
       await service.createReceipt(input);
       await refresh();
       return;
@@ -82,50 +108,64 @@ export function useWorkspace() {
     if (items.some((r) => duplicateKey(r) === duplicateKey(input)))
       throw Error("This receipt is already in your books.");
     const { image, ...data } = input;
-    setItems((prev) => [
-      {
-        ...data,
-        id: crypto.randomUUID(),
-        decision: demoDecision(input, company),
-        status: "review",
-        createdAt: new Date().toISOString(),
-      },
+    setDemo((prev) => ({
       ...prev,
-    ]);
+      receipts: [
+        {
+          ...data,
+          id: crypto.randomUUID(),
+          decision: demoDecision(input, company),
+          status: "review",
+          createdAt: new Date().toISOString(),
+        },
+        ...prev.receipts,
+      ],
+    }));
   }
   async function post(r: Receipt) {
     if (r.decision.verdict === "review")
       throw Error("This receipt still needs a VAT review.");
-    if (user) {
+    if (live) {
       await service.postReceipt(r.id);
       await refresh();
     } else
-      setItems((prev) =>
-        prev.map((i) => (i.id === r.id ? { ...i, status: "posted" } : i)),
-      );
+      setDemo((prev) => ({
+        ...prev,
+        receipts: prev.receipts.map((i) =>
+          i.id === r.id ? { ...i, status: "posted" } : i,
+        ),
+      }));
   }
   async function save(c: Company) {
-    if (user) await service.saveCompany(c);
-    else
-      setItems((prev) =>
-        prev.map((r) =>
+    if (live) {
+      await service.saveCompany(c);
+      if (
+        activeWorkspace.current === user.uid &&
+        auth?.currentUser?.uid === user.uid
+      )
+        setWorkspace((prev) => ({ ...prev, company: c }));
+    } else
+      setDemo((prev) => ({
+        company: c,
+        receipts: prev.receipts.map((r) =>
           r.status === "review" ? { ...r, decision: demoDecision(r, c) } : r,
         ),
-      );
-    setCompany(c);
+      }));
   }
   return {
     user,
+    live,
+    switchMode,
     items,
     company,
     error,
     setError,
-    loading,
+    loading: live && loading,
     refresh,
     add,
     post,
     save,
-    login: signIn,
+    login,
     logout: async () => {
       if (auth) await signOut(auth);
     },

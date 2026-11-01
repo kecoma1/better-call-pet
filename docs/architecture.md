@@ -6,6 +6,8 @@
 
 `Agent or MCP → sharedTools → same domain service`.
 
+The company selector switches between the live company workspace and an explicitly labelled demo without signing out. Demo data stays in `bcp-demo-v1` browser storage, separate from live data; `bcp-workspace-mode` remembers the selected mode. Receipt actions, extraction, settings and chat follow the selected workspace. Returning to the live workspace requires sign-in if there is no active session. A live API failure never switches to demo automatically.
+
 The Google account configured as `INTERNAL_ADMIN_EMAIL` can enroll as the first internal admin. Other accounts require an existing active `/users/{uid}` membership. Revoking membership also blocks OAuth access. The company and all expenses are shared internally.
 
 ## Stable boundaries for parallel development
