@@ -50,7 +50,12 @@ company details, and no chat tool can post to the ledger.
 Assistant messages may include `tools: ChatToolResult[]`. These are deterministic
 snapshots from successful `sharedTools` executions, not model-generated card
 payloads. Receipt cards contain integer-pence totals and draft/post state;
-company cards omit tax identifiers. Snapshots include at most 20 receipts and
+company cards omit tax identifiers. Company reads (`get_company`) are background
+context: their snapshots are collapsed until the user activates the “Company
+checked” pill, including in previously saved conversations. Company saves
+(`save_company`) display their confirmation card immediately. The agent only
+reads workspace data when needed for the current request; greetings and general
+questions do not need tools. Snapshots include at most 20 receipts and
 explicit total counts, at most 12 tool results per reply, and are retained for
 the latest 10 messages. Older message text and tool pills remain. Tool pills and bounded card results appear while the server executes each tool. Final messages retain their activity history.
 

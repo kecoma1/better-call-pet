@@ -1203,6 +1203,7 @@ button[data-slot="select-trigger"] {
 .settings-grid {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
+  align-items: start;
   gap: 22px;
 }
 .settings-form {
@@ -1235,7 +1236,7 @@ button[data-slot="select-trigger"] {
   position: relative;
   isolation: isolate;
   width: min(100%, 330px);
-  height: 280px;
+  aspect-ratio: 330 / 280;
   margin: 15px auto 0;
 }
 .dot-connect-scene::before {
@@ -1253,9 +1254,9 @@ button[data-slot="select-trigger"] {
   position: absolute;
   z-index: 2;
   left: 50%;
-  bottom: 62px;
-  width: 190px;
-  height: 218px;
+  bottom: 12.5%;
+  width: 57.58%;
+  height: 77.86%;
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -1264,17 +1265,14 @@ button[data-slot="select-trigger"] {
   inset: auto 0 0;
   display: block;
   border-radius: var(--radius);
-  transition: transform 0.2s;
 }
 .dot-connect-characters img {
   display: block;
   width: 100%;
-  height: 145px;
+  height: auto;
+  aspect-ratio: 330 / 145;
   object-fit: contain;
   object-position: center bottom;
-}
-.dot-connect-characters:hover {
-  transform: translateY(-3px);
 }
 .dot-connect-characters:focus-visible {
   outline: 2px solid var(--ring);
@@ -1303,14 +1301,6 @@ button[data-slot="select-trigger"] {
 .dot-connect-intro [data-slot="button"] {
   min-width: 174px;
   color: var(--primary-foreground);
-}
-@media (prefers-reduced-motion: reduce) {
-  .dot-connect-characters {
-    transition: none;
-  }
-  .dot-connect-characters:hover {
-    transform: none;
-  }
 }
 .connect-steps {
   padding-left: 18px;

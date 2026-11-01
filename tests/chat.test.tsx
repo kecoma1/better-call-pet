@@ -105,7 +105,7 @@ describe("chat messages and deterministic cards", () => {
       "Demo",
     );
   });
-  it("collapses longer lists, shows explicit limits and company fields", () => {
+  it("collapses longer lists and only reveals company lookups on request", () => {
     const receipts = Array.from({ length: 7 }, (_, i) => ({
       ...demoReceipts[0],
       id: `sample-${i}`,
@@ -126,10 +126,59 @@ describe("chat messages and deterministic cards", () => {
     );
     expect(screen.getByText("Supplier 6")).toBeVisible();
     expect(screen.getByText(/Showing the first 7 receipts/)).toBeVisible();
+    expect(screen.queryByText(defaultCompany.name)).not.toBeInTheDocument();
+    expect(screen.queryByText("VAT registration")).not.toBeInTheDocument();
+    const companyToggle = screen.getByRole("button", { name: "Company checked" });
+    expect(companyToggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(companyToggle);
+    expect(companyToggle).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText(defaultCompany.name)).toBeVisible();
     expect(screen.getByText("Registered")).toBeVisible();
+    expect(document.getElementById(companyToggle.getAttribute("aria-controls")!))
+      .toHaveTextContent(defaultCompany.name);
+    fireEvent.click(companyToggle);
+    expect(screen.queryByText(defaultCompany.name)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show less" }));
     expect(screen.queryByText("Supplier 6")).not.toBeInTheDocument();
+  });
+  it("shows company save confirmations immediately and keeps pruned lookups as plain pills", () => {
+    render(
+      <ChatToolCards
+        tools={[
+          { name: "get_company" },
+          { name: "save_company", company: defaultCompany },
+        ]}
+        demo={false}
+      />,
+    );
+    expect(screen.getByText("Company checked")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Company checked" })).toBeNull();
+    expect(screen.getByText("Company saved")).toBeVisible();
+    expect(screen.getByText(defaultCompany.name)).toBeVisible();
+    expect(screen.getByText(defaultCompany.yearEnd)).toBeVisible();
+  });
+  it("starts each company lookup collapsed without hiding the answer", () => {
+    render(
+      <>
+        {["Hola, ¿en qué te ayudo?", "Envíame los recibos de prueba."].map((content) => (
+          <ChatMessage
+            key={content}
+            message={{
+              role: "assistant",
+              content,
+              tools: [{ name: "get_company", company: defaultCompany }],
+            }}
+          />
+        ))}
+      </>,
+    );
+    const replies = screen.getAllByRole("article", { name: "Saul’s reply" });
+    expect(replies[0]).toHaveTextContent("Hola, ¿en qué te ayudo?");
+    expect(replies[1]).toHaveTextContent("Envíame los recibos de prueba.");
+    expect(screen.queryByText(defaultCompany.name)).not.toBeInTheDocument();
+    fireEvent.click(within(replies[0]).getByRole("button", { name: "Company checked" }));
+    expect(within(replies[0]).getByText(defaultCompany.name)).toBeVisible();
+    expect(within(replies[1]).queryByText(defaultCompany.name)).not.toBeInTheDocument();
   });
 });
 describe("shared floating and full-page conversation", () => {

@@ -120,6 +120,7 @@ test("shows Firestore activity, tools and text before the chat request completes
   await expect(
     reply.locator("strong").filter({ hasText: "live" }),
   ).toBeVisible();
+  await reply.getByRole("button", { name: "Company checked" }).click();
   await expect(page.getByText("Fictional Company")).toBeVisible();
   await expect(page.getByText("Writing reply")).toBeVisible();
   await expect(
