@@ -1,9 +1,18 @@
 import { useState, useEffect } from "react";
-import { Save, PlugZap, Copy, Check, ExternalLink, Unplug } from "lucide-react";
+import {
+  Save,
+  PlugZap,
+  Copy,
+  Check,
+  ExternalLink,
+  Unplug,
+  ArrowUpRight,
+} from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
+import Saul from "../components/saul";
 import {
   Select,
   SelectTrigger,
@@ -144,7 +153,7 @@ export default function Settings({
           </CardContent>
         </Card>
         <div>
-          <Card>
+          <Card className="dot-connect-card">
             <CardContent>
               <div className="section-heading">
                 <h3>
@@ -152,6 +161,34 @@ export default function Settings({
                   Connect your Dot
                 </h3>
                 <span className="connection-label">MCP + OAuth</span>
+              </div>
+              <div className="dot-connect-scene">
+                <Saul state="seated" className="dot-connect-saul" />
+                <a
+                  className="dot-connect-characters"
+                  href="/connect"
+                  aria-label="Connect Saul with your Dot"
+                >
+                  <img
+                    src="/chibi/dots-characters.png"
+                    alt="Blue, green, yellow and pink Dots characters"
+                    width={640}
+                    height={320}
+                  />
+                </a>
+              </div>
+              <div className="dot-connect-intro">
+                <p className="eyebrow">GOOD COMPANY. BETTER BOOKS.</p>
+                <h4>Saul, meet your Dot.</h4>
+                <p className="muted">
+                  Your favourite assistant. Your accounting sidekick. Bring them
+                  together.
+                </p>
+                <Button asChild>
+                  <a href="/connect">
+                    Connect your Dot <ArrowUpRight size={15} />
+                  </a>
+                </Button>
               </div>
               <p className="muted">
                 Bring your accounting workspace into your assistant. Sign in in

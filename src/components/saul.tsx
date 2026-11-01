@@ -3,7 +3,7 @@ export default function Saul({
   state = "idle",
   className = "",
 }: {
-  state?: "idle" | "thinking" | "approved";
+  state?: "idle" | "thinking" | "approved" | "seated";
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
@@ -14,15 +14,17 @@ export default function Saul({
     <img
       className={"saul " + className}
       src={
-        failed || reduce
+        failed || reduce || state === "seated"
           ? "/chibi/saul-" + state + ".png"
           : "/chibi/saul-" + state + ".webp"
       }
       onError={() => setFailed(true)}
       alt={
-        state === "thinking"
-          ? "Saul is thinking"
-          : "Saul Goodman, your accounting companion"
+        state === "seated"
+          ? "Saul Goodman sitting with your Dots"
+          : state === "thinking"
+            ? "Saul is thinking"
+            : "Saul Goodman, your accounting companion"
       }
       width={416}
       height={554}
