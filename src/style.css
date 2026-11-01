@@ -192,9 +192,10 @@ p {
   margin-bottom: 33px;
   white-space: nowrap;
 }
-.brand > img {
+.brand > .saul {
   width: 33px;
   height: 33px;
+  flex-shrink: 0;
   object-fit: contain;
   border-radius: 9px;
 }
