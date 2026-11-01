@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function internal() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /expenses/{id} { allow read: if internal(); allow write: if false; }
+    match /journals/{id} { allow read: if internal(); allow write: if false; }
+    match /companies/{id} { allow read: if internal(); allow write: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
