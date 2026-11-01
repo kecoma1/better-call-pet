@@ -38,7 +38,6 @@ export default function ChatThread({
         {empty && (
           <div className="chat-empty-state">
             <Saul state="pacing" className="chat-empty-saul" />
-            <p className="eyebrow">BETTER CALL SAUL</p>
             <h1>Let’s talk books.</h1>
             <p>You handle the business. I’ll help with the fine print.</p>
           </div>
