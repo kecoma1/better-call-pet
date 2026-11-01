@@ -69,7 +69,7 @@ export default function App() {
       {page !== "Chat" && (
         <aside className="sidebar">
           <a className="brand" href="/" aria-label="Better Call Pet home">
-            <img src="/favicon.svg" alt="" />
+            <img src="/logo.webp" alt="" />
             <span>
               better call{" "}
               <strong>

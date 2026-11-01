@@ -51,7 +51,7 @@ main.chat-main {
   height: 30px;
 }
 .chat-brand strong > span {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
 }
 .conversation-new {
   width: 100%;
@@ -254,7 +254,7 @@ main.chat-main {
   margin-block: 4px;
 }
 .chat-markdown a {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   text-decoration: underline;
   text-underline-offset: 3px;
 }

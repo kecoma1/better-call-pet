@@ -57,7 +57,7 @@ export default function ChatPage({
   const history = (
     <aside className="conversation-sidebar" aria-label="Conversations">
       <a className="chat-brand" href="/" aria-label="Better Call Pet home">
-        <img src="/favicon.svg" alt="" />
+        <img src="/logo.webp" alt="" />
         <span>
           better call{" "}
           <strong>

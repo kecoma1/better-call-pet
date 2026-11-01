@@ -27,20 +27,20 @@
 }
 :root {
   color-scheme: dark;
-  --background: #101311;
-  --foreground: #edf0e9;
-  --card: #171b17;
-  --popover: #20261f;
-  --primary: #c1ed85;
-  --primary-foreground: #1b2815;
-  --secondary: #283123;
-  --muted: #20261f;
-  --muted-foreground: #929b8f;
-  --accent: #2b3527;
+  --background: #0e131c;
+  --foreground: #edf2fa;
+  --card: #151d2a;
+  --popover: #1c2839;
+  --primary: #007cd6;
+  --primary-foreground: #03070d;
+  --secondary: #22324c;
+  --muted: #1b2636;
+  --muted-foreground: #a0aec3;
+  --accent: #293c59;
   --destructive: #f2a69b;
-  --border: #2b3129;
-  --input: #343d30;
-  --ring: #b7dd82;
+  --border: #2c394d;
+  --input: #364965;
+  --ring: #007cd6;
   --radius: 10px;
   font-family:
     Inter,
@@ -89,6 +89,16 @@ button {
 }
 button:disabled {
   cursor: not-allowed;
+}
+[data-slot="button"][data-variant="default"] {
+  background-color: color-mix(in srgb, var(--primary) 62%, var(--secondary));
+  color: var(--foreground);
+}
+[data-slot="button"][data-variant="default"]:hover {
+  background-color: color-mix(in srgb, var(--primary) 72%, var(--secondary));
+}
+[data-slot="button"][data-variant="default"]:active {
+  background-color: color-mix(in srgb, var(--primary) 55%, var(--secondary));
 }
 h1,
 h2,
@@ -185,6 +195,8 @@ p {
 .brand > img {
   width: 33px;
   height: 33px;
+  object-fit: contain;
+  border-radius: 9px;
 }
 .brand > span {
   font-size: 17px;
@@ -192,7 +204,7 @@ p {
   letter-spacing: -0.6px;
 }
 .brand strong > span {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   font-size: 23px;
   position: relative;
   top: 2px;
@@ -234,7 +246,7 @@ p {
   background: var(--secondary);
   border: 1px solid var(--input);
   border-radius: 7px;
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   font-size: 13px;
   flex-shrink: 0;
 }
@@ -271,7 +283,7 @@ p {
 }
 .nav-button.active {
   background: var(--secondary);
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   position: relative;
 }
 .nav-button.active:before {
@@ -288,7 +300,7 @@ p {
   margin-left: auto;
   border: 0;
   background: var(--accent);
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   font-size: 10px;
   padding: 1px 6px;
 }
@@ -308,7 +320,7 @@ p {
   display: grid;
   place-items: center;
   background: var(--secondary);
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   font-size: 11px;
   border-radius: 50%;
   width: 30px;
@@ -396,7 +408,7 @@ main {
   margin: 7px 0 7px;
 }
 .page-heading h1 > span {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
 }
 .page-heading p:not(.eyebrow) {
   color: var(--muted-foreground);
@@ -429,7 +441,7 @@ main {
   font-size: 8px;
   font-weight: 500;
   letter-spacing: 1px;
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   border-color: var(--input);
   background: var(--background);
   gap: 7px;
@@ -506,7 +518,7 @@ main {
   box-shadow: 0 6px 18px var(--background);
 }
 .floating-note svg {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
 }
 .note-one {
   top: 48px;
@@ -518,7 +530,7 @@ main {
   left: -20px;
   transform: rotate(-5deg);
   font-size: 10px;
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
 }
 .art-caption {
   position: absolute;
@@ -666,7 +678,7 @@ table td.amount {
 }
 .verdict.deductible {
   background: var(--secondary);
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
 }
 .verdict.not_deductible {
   background: var(--muted);
@@ -700,7 +712,7 @@ td > [data-slot="badge"]:not(.verdict) {
   margin-top: 24px;
 }
 .next-item > span {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   height: 33px;
   width: 33px;
   display: grid;
@@ -718,7 +730,7 @@ td > [data-slot="badge"]:not(.verdict) {
   margin-top: 6px;
 }
 .next-item button {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   font-size: 10px;
   height: auto;
   padding: 0;
@@ -850,7 +862,7 @@ td > [data-slot="badge"]:not(.verdict) {
 .message.user {
   align-self: flex-end;
   background: var(--secondary);
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
 }
 .chat-status {
   display: flex;
@@ -936,7 +948,7 @@ td > [data-slot="badge"]:not(.verdict) {
   background: var(--background);
 }
 .upload-area > svg {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   width: 20px;
 }
 .upload-area label {
@@ -988,7 +1000,7 @@ button[data-slot="select-trigger"] {
 }
 .example-row button {
   font-size: 10px;
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
 }
 .receipt-form > button {
   margin-top: 7px;
@@ -1036,7 +1048,7 @@ button[data-slot="select-trigger"] {
 .decision-summary a {
   display: block;
   font-size: 10px;
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   margin-top: 9px;
 }
 .receipt-facts {
@@ -1171,7 +1183,7 @@ button[data-slot="select-trigger"] {
   margin-top: 5px;
 }
 .lifecycle > span.active {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   background: var(--secondary);
   border-color: var(--input);
 }
@@ -1197,7 +1209,7 @@ button[data-slot="select-trigger"] {
 .threshold-card button {
   padding: 0;
   margin-top: 12px;
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   font-size: 11px;
 }
 .settings-grid {
@@ -1226,7 +1238,7 @@ button[data-slot="select-trigger"] {
 }
 .connection-label {
   font-size: 9px;
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
   white-space: nowrap;
 }
 .dot-connect-card {
@@ -1371,7 +1383,7 @@ button[data-slot="select-trigger"] {
   color: var(--muted-foreground);
 }
 .connect-page [data-slot="card-content"] > svg {
-  color: var(--primary);
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
 }
 .consent-actions {
   display: flex;
