@@ -1,0 +1,62 @@
+.receipt-upload-form .upload-area {
+  min-height: 220px;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.receipt-upload-form .upload-area > img {
+  max-height: 180px;
+}
+
+.receipt-file-name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.receipt-reading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0 24px;
+  text-align: center;
+}
+
+.receipt-reading > .saul {
+  width: 180px;
+  height: 240px;
+  object-fit: contain;
+}
+
+.receipt-reading-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.receipt-reading-status h3 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+
+.receipt-reading-status p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+.receipt-reading-status > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+}
+
+.receipt-review-image {
+  max-height: 160px;
+  max-width: 100%;
+  object-fit: contain;
+  align-self: center;
+}
