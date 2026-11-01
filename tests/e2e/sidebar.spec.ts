@@ -15,6 +15,11 @@ for (const viewport of [
     test.skip(isMobile, "Desktop sidebar layout");
     await page.setViewportSize(viewport);
     await page.goto("/");
+    if (
+      !(await page.getByRole("button", { name: "Open workspace" }).isVisible())
+    )
+      await page.getByRole("button", { name: "Show conversations" }).click();
+    await page.getByRole("button", { name: "Open workspace" }).click();
     const sidebar = page.getByRole("complementary");
     const navigation = sidebar.getByRole("navigation", {
       name: "Main navigation",
@@ -22,7 +27,10 @@ for (const viewport of [
     const settings = sidebar.getByRole("button", {
       name: "Settings & connections",
     });
-    const signIn = sidebar.getByRole("button", { name: "Sign in", exact: true });
+    const signIn = sidebar.getByRole("button", {
+      name: "Sign in",
+      exact: true,
+    });
 
     await expect(sidebar).not.toContainText("Small business.");
     await expect(
@@ -55,12 +63,19 @@ for (const viewport of [
     await page.getByRole("button", { name: "Collapse sidebar" }).click();
     await expect(settings).toBeInViewport({ ratio: 1 });
     await expect(signIn).toBeInViewport({ ratio: 1 });
-    await navigation.getByRole("button", { name: "Overview", exact: true }).click();
+    await navigation
+      .getByRole("button", { name: "Overview", exact: true })
+      .click();
     await settings.click();
     await expect(
       page.getByRole("heading", { name: "Your workspace." }),
     ).toBeVisible();
     await page.reload();
+    if (
+      !(await page.getByRole("button", { name: "Open workspace" }).isVisible())
+    )
+      await page.getByRole("button", { name: "Show conversations" }).click();
+    await page.getByRole("button", { name: "Open workspace" }).click();
     await expect(
       page.getByRole("button", { name: "Expand sidebar" }),
     ).toBeVisible();
@@ -75,6 +90,9 @@ test("mobile navigation scrolls horizontally and keeps settings accessible", asy
 }) => {
   test.skip(!isMobile, "Mobile navigation layout");
   await page.goto("/");
+  if (!(await page.getByRole("button", { name: "Open workspace" }).isVisible()))
+    await page.getByRole("button", { name: "Show conversations" }).click();
+  await page.getByRole("button", { name: "Open workspace" }).click();
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   const vat = navigation.getByRole("button", { name: "VAT", exact: true });
   await vat.click();
@@ -85,6 +103,8 @@ test("mobile navigation scrolls horizontally and keeps settings accessible", asy
     page.getByRole("heading", { name: "Your workspace." }),
   ).toBeVisible();
   expect(
-    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
   ).toBe(true);
 });

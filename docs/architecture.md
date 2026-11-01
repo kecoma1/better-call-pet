@@ -10,6 +10,8 @@ Clicking an expense row (overview or receipts) or a ledger row opens the shared 
 
 The overview's Saul banner is the expense notifications area. `src/lib/notifications.ts` derives current work from review-state expenses: missing invoice evidence, VAT reviews, then expenses awaiting approval. `NotificationsBanner` lets users browse these groups and open the relevant expense sheet. Posting updates the banner immediately. These are current-work notifications; there is no push delivery, unread status or notification history yet.
 
+Chat is the default app screen and has a dedicated full-viewport shell. Its own sidebar contains conversation history and an Open workspace action; the dashboard navigation and topbar appear only in accounting sections. The history sidebar becomes an accessible Sheet on mobile. Empty and new conversations show the existing `saul-pacing.webp` walking clip. User questions and assistant replies render with `react-markdown` and `remark-gfm`; tables use shadcn primitives, raw HTML remains escaped, and word fades preserve Markdown semantics.
+
 The Chat sidebar entry and the floating Saul panel share `useConversations` through
 one mounted `Chat` owner. Conversation history, topic filtering, search, cards and
 tool pills live in `src/pages/chat.tsx` and focused chat components. HTTP requests
@@ -35,7 +37,7 @@ Use isolated branches/worktrees for simultaneous work. `App.tsx`, `style.css`, `
 
 ## Media contract
 
-`public/chibi/saul-{idle,smoking,thinking,approved}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. The floating chat launcher explicitly uses `smoking`, the relaxed cigar-only clip. The launcher shows only Saul’s animated icon and status dot, without the “Better call Saul” callout. The notifications banner uses `thinking` for pending work and `approved` when caught up, so it never shares the launcher's animation. Inside chat, Saul appears below the messages with `idle`, `thinking` or `approved` according to conversation state. Each state has its own matching PNG for reduced motion or failed animation loads; errors are scoped to the failed animation. The HTML loader randomly chooses PNG states, with an idle fallback.
+`public/chibi/saul-{idle,smoking,thinking,approved,pacing}.webp`: transparent animated WebP, width 416 px, portrait 3:4, infinite seamless loop. The floating chat launcher explicitly uses `smoking`, the relaxed cigar-only clip. The launcher shows only Saul’s animated icon and status dot, without the “Better call Saul” callout. The notifications banner uses `thinking` for pending work and `approved` when caught up, so it never shares the launcher's animation. Inside chat, Saul uses the `pacing` animation in the empty state; messages occupy the conversation area once a question is sent. Each state has its own matching PNG for reduced motion or failed animation loads; errors are scoped to the failed animation. The HTML loader randomly chooses PNG states, with an idle fallback.
 
 Seedance cigar source generation already exists at `marketing/chibi/out/saul-cigar.mp4` in the shared working directory (ignored). Preserve the original approved character art. Generated task metadata can contain signed URLs and must stay ignored.
 

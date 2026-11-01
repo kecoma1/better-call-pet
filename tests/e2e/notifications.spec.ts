@@ -6,6 +6,9 @@ test("overview notifications open expenses and clear after approval", async ({
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
+  if (!(await page.getByRole("button", { name: "Open workspace" }).isVisible()))
+    await page.getByRole("button", { name: "Show conversations" }).click();
+  await page.getByRole("button", { name: "Open workspace" }).click();
   const banner = page.getByRole("region", { name: "Notifications" });
   const launcher = page
     .getByRole("button", { name: "Open chat with Saul" })
@@ -59,6 +62,9 @@ test("notification navigation surfaces missing evidence and VAT reviews", async 
     { company: defaultCompany, receipts },
   );
   await page.goto("/");
+  if (!(await page.getByRole("button", { name: "Open workspace" }).isVisible()))
+    await page.getByRole("button", { name: "Show conversations" }).click();
+  await page.getByRole("button", { name: "Open workspace" }).click();
   const banner = page.getByRole("region", { name: "Notifications" });
   await expect(banner.getByRole("heading")).toHaveText(
     "A receipt is missing its invoice.",

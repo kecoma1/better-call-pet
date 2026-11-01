@@ -2,16 +2,11 @@ import { useEffect, useRef } from "react";
 import { ArrowUp, Loader2 } from "lucide-react";
 import type { ConversationsWorkspace } from "../hooks/use-conversations";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
 import ChatMessage from "./chat-message";
 import Saul from "./saul";
 
-const welcome = {
-  role: "assistant" as const,
-  content:
-    "Hey, I’m Saul. You handle the business. I’ll help with the fine print. What are we looking at?",
-};
 export default function ChatThread({
   workspace: w,
   live,
@@ -22,20 +17,32 @@ export default function ChatThread({
   onOpenReceipt?: (id: string) => void;
 }) {
   const bottom = useRef<HTMLDivElement>(null);
+  const log = useRef<HTMLDivElement>(null);
   const messages = w.active?.messages ?? [];
+  const empty = !messages.length && !w.pending && !w.loading;
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [w.active, w.pending, w.busy]);
+    if (messages.length || w.pending)
+      bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    else if (log.current) log.current.scrollTop = 0;
+  }, [w.active, w.pending, w.busy, messages.length]);
   return (
     <>
       <div
-        className="chat-messages"
+        ref={log}
+        className={"chat-messages" + (empty ? " is-empty" : "")}
         role="log"
         aria-label="Conversation messages"
         aria-live="polite"
         aria-relevant="additions"
       >
-        {!messages.length && !w.loading && <ChatMessage message={welcome} />}
+        {empty && (
+          <div className="chat-empty-state">
+            <Saul state="pacing" className="chat-empty-saul" />
+            <p className="eyebrow">BETTER CALL SAUL</p>
+            <h1>Let’s talk books.</h1>
+            <p>You handle the business. I’ll help with the fine print.</p>
+          </div>
+        )}
         {messages.map((message, index) => (
           <ChatMessage
             key={`${w.active!.id}-${index}`}
@@ -54,13 +61,9 @@ export default function ChatThread({
             {w.busy ? "Reading the fine print…" : "Opening conversations…"}
           </p>
         )}
-        <Saul
-          className="chat-saul"
-          state={w.busy ? "thinking" : messages.length ? "approved" : "idle"}
-        />
         <div ref={bottom} />
       </div>
-      {!messages.length && !w.busy && (
+      {empty && !w.busy && (
         <div className="chat-suggestions">
           {["What needs my attention?", "What VAT can I reclaim?"].map(
             (suggestion) => (
@@ -83,6 +86,7 @@ export default function ChatThread({
         </p>
       )}
       <form
+        className="chat-composer"
         onSubmit={(e) => {
           e.preventDefault();
           void w.send(w.text);
@@ -91,13 +95,24 @@ export default function ChatThread({
         <Label htmlFor="chat-input" className="sr-only">
           Message Saul
         </Label>
-        <Input
+        <Textarea
           id="chat-input"
+          rows={1}
           value={w.text}
           maxLength={5000}
           disabled={w.busy || w.loading}
           onChange={(e) => w.setText(e.target.value)}
           placeholder="Ask Saul about your books…"
+          onKeyDown={(e) => {
+            if (
+              e.key === "Enter" &&
+              !e.shiftKey &&
+              !e.nativeEvent.isComposing
+            ) {
+              e.preventDefault();
+              void w.send(w.text);
+            }
+          }}
         />
         <Button
           size="icon"

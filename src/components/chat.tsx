@@ -15,6 +15,8 @@ export default function Chat({
   view = "floating",
   onExpand,
   onOpenReceipt,
+  onNavigate,
+  onSignIn,
 }: {
   live: boolean;
   items: Receipt[];
@@ -22,6 +24,8 @@ export default function Chat({
   view?: "floating" | "page";
   onExpand?: () => void;
   onOpenReceipt?: (id: string) => void;
+  onNavigate?: (page: string) => void;
+  onSignIn?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const workspace = useConversations(live, items, onRefresh);
@@ -31,6 +35,8 @@ export default function Chat({
         workspace={workspace}
         live={live}
         onOpenReceipt={onOpenReceipt}
+        onNavigate={onNavigate}
+        onSignIn={onSignIn}
       />
     );
   if (!open)

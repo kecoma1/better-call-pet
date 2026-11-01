@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 test("review, post once, inspect ledger and open Saul", async ({ page }) => {
   await page.goto("/");
+  if (!(await page.getByRole("button", { name: "Open workspace" }).isVisible()))
+    await page.getByRole("button", { name: "Show conversations" }).click();
+  await page.getByRole("button", { name: "Open workspace" }).click();
   await expect(
     page.getByRole("heading", { name: "Your books, in good hands." }),
   ).toBeVisible();
@@ -63,6 +66,9 @@ test("reject duplicate sample and show blocked entertainment", async ({
   page,
 }) => {
   await page.goto("/");
+  if (!(await page.getByRole("button", { name: "Open workspace" }).isVisible()))
+    await page.getByRole("button", { name: "Show conversations" }).click();
+  await page.getByRole("button", { name: "Open workspace" }).click();
   await page.getByRole("button", { name: "Add receipt", exact: true }).click();
   await page.getByRole("button", { name: /Use sample receipt/ }).click();
   await page.getByRole("button", { name: "Get VAT decision" }).click();

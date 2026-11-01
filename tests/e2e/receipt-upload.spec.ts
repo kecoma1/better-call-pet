@@ -21,6 +21,9 @@ test("image-first demo, explicit send, manual review and fresh reopen", async ({
   page,
 }) => {
   await page.goto("/");
+  if (!(await page.getByRole("button", { name: "Open workspace" }).isVisible()))
+    await page.getByRole("button", { name: "Show conversations" }).click();
+  await page.getByRole("button", { name: "Open workspace" }).click();
   await page.getByRole("button", { name: "Add receipt", exact: true }).click();
   await expect(page.getByLabel("Supplier")).toHaveCount(0);
   await expect(

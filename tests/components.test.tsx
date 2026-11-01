@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { defaultCompany, demoReceipts, examples } from "../src/domain";
 vi.mock("../src/firebase", () => ({
   auth: null,
@@ -61,15 +67,23 @@ describe("foundation surfaces", () => {
     expect(screen.getByLabelText("Supplier")).toHaveValue(examples[0].vendor);
   });
   it("shows Saul beneath chat messages and a clearly labelled demo response", async () => {
-    render(<Chat live={false} items={demoReceipts} onRefresh={vi.fn()} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Open chat with Saul" }),
+    render(
+      <Chat
+        view="page"
+        live={false}
+        items={demoReceipts}
+        onRefresh={vi.fn()}
+      />,
     );
     fireEvent.change(screen.getByLabelText("Message Saul"), {
       target: { value: "What VAT can I reclaim?" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
-    expect(await screen.findByText(/This is the demo workspace/)).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("article", { name: "Saul’s reply" }),
+      ).toHaveTextContent("This is the demo workspace"),
+    );
     expect(
       screen.getByRole("region", { name: "Chat with Saul" }),
     ).toBeVisible();
@@ -133,6 +147,7 @@ describe("foundation surfaces", () => {
   });
   it("navigates the sidebar to expenses", () => {
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Open workspace" }));
     fireEvent.click(screen.getByRole("button", { name: /^Receipts/ }));
     expect(
       screen.getByRole("heading", { name: "Every receipt counts." }),

@@ -61,11 +61,9 @@ describe("chat messages and deterministic cards", () => {
       />,
     );
     const article = screen.getByRole("article", { name: "Saul’s reply" });
-    expect(within(article).getByText("One two three")).toBeInTheDocument();
-    expect(within(article).getByText("One").parentElement).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
+    expect(article).toHaveTextContent("One two three");
+    expect(within(article).getByText("One")).toHaveClass("chat-word");
+    expect(within(article).getByText("One")).not.toHaveAttribute("aria-hidden");
   });
   it("keeps user text plain and never renders supplied markup as HTML", () => {
     render(
@@ -140,8 +138,10 @@ describe("shared floating and full-page conversation", () => {
     ).toBeVisible();
     expect(screen.getByText(/Your first conversation starts/)).toBeVisible();
     send("VAT question");
-    await within(screen.getByRole("log")).findByText(
-      /This is the demo workspace/,
+    await waitFor(() =>
+      expect(
+        screen.getByRole("article", { name: "Saul’s reply" }),
+      ).toHaveTextContent("This is the demo workspace"),
     );
     expect(
       screen.getByRole("navigation", { name: "Conversation history" }),
@@ -160,8 +160,10 @@ describe("shared floating and full-page conversation", () => {
         screen.getByRole("navigation", { name: "Conversation history" }),
       ).getByRole("button"),
     );
-    await within(screen.getByRole("log")).findByText(
-      /This is the demo workspace/,
+    await waitFor(() =>
+      expect(
+        screen.getByRole("article", { name: "Saul’s reply" }),
+      ).toHaveTextContent("This is the demo workspace"),
     );
     expect(service.sendConversationMessage).not.toHaveBeenCalled();
   });
@@ -223,8 +225,8 @@ describe("shared floating and full-page conversation", () => {
     expect(signal.aborted).toBe(false);
     await act(async () => finish());
     expect(
-      within(screen.getByRole("log")).getByText("Review the invoices."),
-    ).toBeInTheDocument();
+      screen.getByRole("article", { name: "Saul’s reply" }),
+    ).toHaveTextContent("Review the invoices.");
     expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
   });
   it("shows live failures, retains input and retries with the same request ID", async () => {

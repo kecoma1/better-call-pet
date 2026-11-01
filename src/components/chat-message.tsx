@@ -1,6 +1,64 @@
-import type { CSSProperties } from "react";
+import Markdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ChatMessage as Message } from "../domain";
 import ChatToolCards from "./chat-tool-cards";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+
+const components: Components = {
+  table: ({ children }) => <Table>{children}</Table>,
+  thead: ({ children }) => <TableHeader>{children}</TableHeader>,
+  tbody: ({ children }) => <TableBody>{children}</TableBody>,
+  tr: ({ children }) => <TableRow>{children}</TableRow>,
+  th: ({ children, style }) => <TableHead style={style}>{children}</TableHead>,
+  td: ({ children, style }) => <TableCell style={style}>{children}</TableCell>,
+};
+
+type MarkdownNode = {
+  type: string;
+  value?: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: MarkdownNode[];
+};
+
+function revealWords({ interval }: { interval: number }) {
+  return (tree: MarkdownNode) => {
+    let index = 0;
+    function walk(node: MarkdownNode) {
+      if (!node.children || node.tagName === "code" || node.tagName === "pre")
+        return;
+      node.children = node.children.flatMap((child): MarkdownNode[] => {
+        if (child.type !== "text" || !child.value) {
+          walk(child);
+          return [child];
+        }
+        return child.value
+          .split(/(\s+)/)
+          .filter(Boolean)
+          .map((word) => {
+            if (/^\s+$/.test(word)) return { type: "text", value: word };
+            return {
+              type: "element",
+              tagName: "span",
+              properties: {
+                className: ["chat-word"],
+                style: `--word-delay: ${index++ * interval}ms`,
+              },
+              children: [{ type: "text", value: word }],
+            };
+          });
+      });
+    }
+    walk(tree);
+  };
+}
 
 export default function ChatMessage({
   message,
@@ -13,10 +71,9 @@ export default function ChatMessage({
   demo?: boolean;
   onOpenReceipt?: (id: string) => void;
 }) {
-  const tokens = message.content.split(/(\s+)/);
-  const wordInterval = Math.min(
+  const interval = Math.min(
     24,
-    1400 / Math.max(1, Math.ceil(tokens.length / 2)),
+    1400 / Math.max(1, message.content.trim().split(/\s+/).length),
   );
   return (
     <article
@@ -32,34 +89,19 @@ export default function ChatMessage({
           onOpenReceipt={onOpenReceipt}
         />
       ) : null}
-      <p>
-        {message.role === "assistant" ? (
-          <>
-            <span className="sr-only">{message.content}</span>
-            <span aria-hidden="true">
-              {tokens.map((word, index) =>
-                /^\s+$/.test(word) ? (
-                  word
-                ) : (
-                  <span
-                    key={index}
-                    className={animate ? "chat-word" : undefined}
-                    style={
-                      {
-                        "--word-delay": `${Math.floor(index / 2) * wordInterval}ms`,
-                      } as CSSProperties
-                    }
-                  >
-                    {word}
-                  </span>
-                ),
-              )}
-            </span>
-          </>
-        ) : (
-          message.content
-        )}
-      </p>
+      <div className="chat-markdown">
+        <Markdown
+          components={components}
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={
+            animate && message.role === "assistant"
+              ? [[revealWords, { interval }]]
+              : []
+          }
+        >
+          {message.content}
+        </Markdown>
+      </div>
     </article>
   );
 }
