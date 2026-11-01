@@ -96,26 +96,11 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-tip">
-            <span className="tip-spark">✳</span>
-            <strong>
-              Small business.
-              <br />
-              Big main-character energy.
-            </strong>
-            <p>
-              You build the dream.
-              <br />
-              We’ll help with the receipts.
-            </p>
-            <Button variant="link" onClick={() => setSelected("new")}>
-              Add your next receipt <ArrowUpRight size={13} />
-            </Button>
-          </div>
           <Button
             variant="ghost"
             className={"nav-button " + (page === "Settings" ? "active" : "")}
             onClick={() => navigate("Settings")}
+            aria-label="Settings & connections"
           >
             <SettingsIcon size={18} />
             <span>Settings & connections</span>
