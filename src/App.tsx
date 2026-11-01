@@ -18,6 +18,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
+import DemoVideoButton from "./components/demo-video-button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Card, CardContent } from "./components/ui/card";
@@ -165,6 +166,7 @@ export default function App() {
               </span>
             </div>
             <div>
+              <DemoVideoButton />
               <span className="today">
                 {new Intl.DateTimeFormat("en-GB", {
                   weekday: "long",
