@@ -53,6 +53,11 @@ main.chat-main {
 .chat-brand strong > span {
   color: var(--primary);
 }
+.conversation-new {
+  width: 100%;
+  justify-content: flex-start;
+  font-size: 12px;
+}
 .chat-page .conversation-list,
 .chat-history-sheet .conversation-list {
   flex-direction: column;

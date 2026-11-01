@@ -107,6 +107,16 @@ describe("dedicated chat shell", () => {
     expect(
       screen.getByRole("img", { name: /walking from left to right/ }),
     ).toHaveAttribute("src", "/chibi/saul-pacing.png");
+    expect(
+      within(
+        screen.getByRole("complementary", { name: "Conversations" }),
+      ).getByRole("button", { name: "New conversation" }),
+    ).toBeVisible();
+    expect(
+      within(
+        screen.getByRole("region", { name: "Chat with Saul" }),
+      ).queryByRole("button", { name: "New conversation" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Open workspace" }));
     expect(
       screen.getByRole("navigation", { name: "Main navigation" }),

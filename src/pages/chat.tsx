@@ -69,6 +69,18 @@ export default function ChatPage({
         <strong>Conversations</strong>
         <Badge variant="secondary">{w.conversations.length}</Badge>
       </div>
+      <Button
+        variant="secondary"
+        className="conversation-new"
+        onClick={() => {
+          w.newConversation();
+          if (mobile) setHistoryOpen(false);
+        }}
+        disabled={w.busy}
+      >
+        <SquarePen size={16} />
+        New conversation
+      </Button>
       <div className="search-box">
         <Search size={14} />
         <Label className="sr-only" htmlFor="conversation-search">
@@ -203,15 +215,6 @@ export default function ChatPage({
             </div>
             {w.active && <Badge variant="outline">{w.active.topic}</Badge>}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={w.newConversation}
-            disabled={w.busy}
-          >
-            <SquarePen size={16} />
-            <span>New conversation</span>
-          </Button>
         </header>
         <ChatThread workspace={w} live={live} onOpenReceipt={onOpenReceipt} />
       </section>

@@ -9,6 +9,19 @@ async function showHistory(page: Page) {
     await page.getByRole("button", { name: "Show conversations" }).click();
   }
 }
+async function startNewConversation(page: Page) {
+  await showHistory(page);
+  const sidebar = page.getByRole("complementary", { name: "Conversations" });
+  const create = sidebar.getByRole("button", { name: "New conversation" });
+  await expect(create).toBeInViewport({ ratio: 1 });
+  await create.click();
+  await expect(
+    page
+      .getByRole("region", { name: "Chat with Saul" })
+      .getByRole("button", { name: "New conversation" }),
+  ).toHaveCount(0);
+}
+
 async function openWorkspace(page: Page) {
   await showHistory(page);
   await page.getByRole("button", { name: "Open workspace" }).click();
@@ -45,7 +58,7 @@ test("chat fills the screen with its own layout and the existing pacing animatio
     page.getByRole("article", { name: "Saul’s reply" }),
   ).toContainText("This is the demo workspace");
   await expect(saul).toHaveCount(0);
-  await page.getByRole("button", { name: "New conversation" }).click();
+  await startNewConversation(page);
   await expect(saul).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("article")).toHaveCount(0);
   expect(
@@ -79,7 +92,7 @@ test("preserves drafts, tools and saved history across the two layouts", async (
   await page.getByRole("button", { name: "Open receipt Paper & Co." }).click();
   await expect(page.getByRole("dialog")).toContainText("Paper & Co.");
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("button", { name: "New conversation" }).click();
+  await startNewConversation(page);
   await expect(input).toHaveValue("");
   await input.fill("List my receipts");
   await page.getByRole("button", { name: "Send message" }).click();
@@ -238,7 +251,7 @@ test("preserves word fades and respects reduced motion", async ({ page }) => {
   ).toBe("0.024s");
   await expect(words.last()).toHaveCSS("opacity", "1");
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.getByRole("button", { name: "New conversation" }).click();
+  await startNewConversation(page);
   await expect(
     page.getByRole("img", { name: /walking from left to right/ }),
   ).toHaveAttribute("src", "/chibi/saul-pacing.png");
