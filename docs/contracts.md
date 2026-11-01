@@ -30,6 +30,12 @@ provider storage is disabled (`store: false`). There is no telephone/PSTN dialin
 
 `sharedTools(uid)` provides `list_receipts`, `get_company`, `create_receipt`, `save_company`. The first two require MCP `accounts:read`; mutations require `receipts:write`. Agent-created receipts remain drafts. There is no post/submit/payment tool.
 
+The event harness permits explicitly requested fake/random/sample receipts. Saul invents clearly fictional inputs, labels notes `SYNTHETIC TEST DATA`, sets `validInvoice=false`, and creates actual review drafts through the same shared tool (three by default, at most five per reply). This permission applies to text and delegated voice; real purchase evidence and completed actions are never fabricated. Decisions response IDs are optional: absent IDs are omitted from the stored VAT decision, never written as `undefined`. Malformed answers fail before expense creation.
+
+`npm run test:tools` runs isolated backend tool and chat tests without a browser or frontend setup. The Firestore adapter rejects undefined values and applies transaction writes atomically; the chat integration suite uses the real Agents SDK with an isolated model provider.
+
+`BCP_LIVE_TOOLS=1 npm run test:tools:live` additionally checks actual model/Decisions calls using a server `OPENAI_API_KEY` from the environment. It creates and lists synthetic drafts only in the isolated Firestore adapter, never in production. This opt-in check incurs provider usage and is excluded from the quick suite.
+
 OAuth metadata lives at `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource/mcp`. `/oauth/register` registers exact HTTPS (or loopback HTTP) callbacks; `/oauth/authorize` opens `/connect`; authenticated preview/approval endpoints show and approve consent; `/oauth/token` exchanges single-use S256 PKCE codes or rotates refresh tokens. `/oauth/revoke` revokes a connection. Tokens and codes are hashed at rest; access tokens expire after one hour, codes after two minutes. Resource binding is mandatory.
 
 Expense lifecycle: `review → posted`. VAT decision: `deductible | not_deductible | review`. Payment is not represented yet. Future declaration lifecycle is `draft → validated → approved → sent → accepted`; it must remain separate from payment and generation/submission.

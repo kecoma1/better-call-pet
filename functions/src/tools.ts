@@ -1,7 +1,7 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { receiptSchema, companySchema } from "./schemas.js";
+import { receiptSchema, companySchema, decisionResponseSchema } from "./schemas.js";
 import {
   defaultCompany,
   duplicateKey,
@@ -100,20 +100,14 @@ export async function decide(
     throw Error(
       `Decisions API unavailable (${response.status}). No VAT decision was saved.`,
     );
-  const result = (await response.json()) as {
-    id: string;
-    answers: {
-      type: string;
-      name: string;
-      choice: string;
-      confidence?: number;
-    }[];
-  };
-  const a = result.answers.find((a) => a.name === "vat_recovery");
+  const result = decisionResponseSchema.safeParse(await response.json().catch(() => null));
+  const a = result.success
+    ? result.data.answers.find((a) => a.name === "vat_recovery")
+    : undefined;
   if (
     !a ||
     a.type !== "choice" ||
-    !["deductible", "not_deductible", "review"].includes(a.choice)
+    !["deductible", "not_deductible", "review"].includes(a.choice ?? "")
   )
     throw Error(
       "Decisions did not return a usable answer. Review this receipt manually.",
@@ -125,7 +119,7 @@ export async function decide(
   else if (
     !input.validInvoice ||
     c.vatScheme === "flat_rate" ||
-    (a.confidence !== undefined && a.confidence < 0.85)
+    (typeof a.confidence === "number" && a.confidence < 0.85)
   )
     verdict = "review";
   const reason =
@@ -144,7 +138,8 @@ export async function decide(
       verdict === "deductible"
         ? Math.round((input.vatPence * input.businessPercent) / 100)
         : 0,
-    decisionId: result.id,
+    // Decisions may omit its id. Firestore rejects explicit undefined values.
+    ...(result.success && result.data.id ? { decisionId: result.data.id } : {}),
   };
 }
 export async function createReceipt(uid: string, input: ReceiptInput) {
@@ -225,7 +220,7 @@ export function sharedTools(uid: string) {
     {
       name: "create_receipt",
       description:
-        "Create a review draft and classify VAT using Decisions. Never posts to the ledger.",
+        "Create a review draft and classify VAT using Decisions. Never posts to the ledger. Explicit requests for fake, random or demo receipts are allowed: invent clearly fictional data, label notes SYNTHETIC TEST DATA, and set validInvoice=false. Never fabricate evidence for a real purchase.",
       schema: receiptSchema.omit({ image: true }),
       execute: async (input: unknown) =>
         createReceipt(uid, receiptSchema.parse(input)),

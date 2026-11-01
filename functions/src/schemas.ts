@@ -1,4 +1,13 @@
 import { z } from "zod";
+export const decisionResponseSchema = z.object({
+  id: z.string().min(1).optional(),
+  answers: z.array(z.object({
+    name: z.string(),
+    type: z.string(),
+    choice: z.string().optional(),
+    confidence: z.number().min(0).max(1).nullish(),
+  })),
+});
 export const chatRequestSchema = z
   .object({
     conversationId: z.uuid(),
