@@ -20,6 +20,8 @@ Decisions topic classification and the Agents SDK adapter. The root
 `conversations` collection is private per internal member and denies direct client
 access. Agent and MCP still execute the same `sharedTools` registry.
 
+Live chat progress uses the root `chatRuns` collection. The server records bounded public activity and assistant text; `src/services/chat-events.ts` owns the Firestore listener and validates each snapshot. `useConversations` owns its lifecycle. Client rules permit active members to read only their own runs and deny all client writes. The progress writer follows Goals Tracker’s serialized/throttled writes and the UI follows AVEC’s collapsed activity history.
+
 The Google account configured as `INTERNAL_ADMIN_EMAIL` can enroll as the first internal admin. Other accounts require an existing active `/users/{uid}` membership. Revoking membership also blocks OAuth access. The company and all expenses are shared internally.
 
 ## Stable boundaries for parallel development

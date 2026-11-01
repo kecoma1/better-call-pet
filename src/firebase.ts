@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 const configured = Boolean(import.meta.env.VITE_FIREBASE_API_KEY);
 const app = configured
@@ -10,6 +11,7 @@ const app = configured
     })
   : null;
 export const auth = app ? getAuth(app) : null;
+export const db = app ? getFirestore(app) : null;
 export async function signIn() {
   if (!auth)
     throw Error("Firebase is not configured yet. You can explore the demo.");

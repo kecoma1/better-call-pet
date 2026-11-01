@@ -2,6 +2,7 @@ import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage as Message } from "../domain";
 import ChatToolCards from "./chat-tool-cards";
+import ChatActivity from "./chat-activity";
 import {
   Table,
   TableBody,
@@ -82,6 +83,9 @@ export default function ChatMessage({
         message.role === "assistant" ? "Saul’s reply" : "Your message"
       }
     >
+      {message.activity?.length ? (
+        <ChatActivity events={message.activity} />
+      ) : null}
       {message.tools?.length ? (
         <ChatToolCards
           tools={message.tools}

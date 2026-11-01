@@ -6,6 +6,7 @@ import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
 import ChatMessage from "./chat-message";
 import Saul from "./saul";
+import ChatActivity from "./chat-activity";
 
 export default function ChatThread({
   workspace: w,
@@ -24,7 +25,7 @@ export default function ChatThread({
     if (messages.length || w.pending)
       bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     else if (log.current) log.current.scrollTop = 0;
-  }, [w.active, w.pending, w.busy, messages.length]);
+  }, [w.active, w.pending, w.busy, w.progress, messages.length]);
   return (
     <>
       <div
@@ -54,6 +55,21 @@ export default function ChatThread({
         {w.pending && (
           <ChatMessage message={{ role: "user", content: w.pending }} />
         )}
+        {w.progress && (
+          <>
+            <ChatActivity events={w.progress.events} />
+            {(w.progress.content || w.progress.tools.length > 0) && (
+              <ChatMessage
+                message={{
+                  role: "assistant",
+                  content: w.progress.content,
+                  tools: w.progress.tools,
+                }}
+                onOpenReceipt={onOpenReceipt}
+              />
+            )}
+          </>
+        )}
         {(w.busy || w.loading) && (
           <p className="chat-status" role="status">
             <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -78,6 +94,11 @@ export default function ChatThread({
             ),
           )}
         </div>
+      )}
+      {w.progressError && w.busy && (
+        <p className="hint" role="status">
+          {w.progressError}
+        </p>
       )}
       {w.error && (
         <p className="error" role="alert">

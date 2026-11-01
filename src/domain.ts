@@ -11,6 +11,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   tools?: ChatToolResult[];
+  activity?: ChatEvent[];
 }
 export interface ChatToolResult {
   name: "list_receipts" | "get_company" | "create_receipt" | "save_company";
@@ -20,6 +21,33 @@ export interface ChatToolResult {
   >[];
   receiptCount?: number;
   company?: Pick<Company, "name" | "vatRegistered" | "yearEnd">;
+}
+export const chatEventKinds = [
+  "classifying",
+  "classified",
+  "tool_started",
+  "tool_completed",
+  "tool_failed",
+  "responding",
+  "completed",
+  "failed",
+] as const;
+export interface ChatEvent {
+  sequence: number;
+  kind: (typeof chatEventKinds)[number];
+  at: string;
+  tool?: ChatToolResult["name"];
+  topic?: ConversationTopic;
+}
+export interface ChatRun {
+  requestId: string;
+  conversationId: string;
+  createdBy: string;
+  status: "running" | "completed" | "failed";
+  updatedAt: string;
+  content: string;
+  tools: ChatToolResult[];
+  events: ChatEvent[];
 }
 export interface ConversationSummary {
   id: string;

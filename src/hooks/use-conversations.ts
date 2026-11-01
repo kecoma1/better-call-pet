@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type { Conversation, ConversationSummary, Receipt } from "../domain";
+import type {
+  ChatRun,
+  Conversation,
+  ConversationSummary,
+  Receipt,
+} from "../domain";
 import {
   conversationSchema,
   fetchConversation,
@@ -8,6 +13,7 @@ import {
 } from "../services/chat";
 import { demoConversation } from "../lib/demo-chat";
 import { z } from "zod";
+import { watchChatRun } from "../services/chat-events";
 
 function storedDemo(): Conversation[] {
   try {
@@ -32,6 +38,9 @@ export function useConversations(
   const [draftId, setDraftId] = useState(() => crypto.randomUUID());
   const [text, setText] = useState("");
   const [pending, setPending] = useState("");
+  const [progress, setProgress] = useState<ChatRun | null>(null);
+  const [progressError, setProgressError] = useState("");
+  const subscription = useRef<(() => void) | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +72,14 @@ export function useConversations(
       });
     return () => controller.abort();
   }, [live, reload]);
-  useEffect(() => () => operation.current?.abort(), []);
+  useEffect(
+    () => () => {
+      operation.current?.abort();
+      subscription.current?.();
+      subscription.current = null;
+    },
+    [],
+  );
   useEffect(() => {
     if (!live)
       try {
@@ -75,6 +91,8 @@ export function useConversations(
     operation.current?.abort();
     setLoading(false);
     setActive(null);
+    setProgress(null);
+    setProgressError("");
     setDraftId(crypto.randomUUID());
     setText("");
     setError("");
@@ -117,10 +135,31 @@ export function useConversations(
     sending.current = true;
     setBusy(true);
     setPending(message);
+    setProgress(null);
+    setProgressError("");
     setError("");
     setText("");
     const controller = new AbortController();
     operation.current = controller;
+    subscription.current?.();
+    if (live) {
+      try {
+        subscription.current = watchChatRun(
+          id,
+          request.requestId,
+          (run) => {
+            if (!controller.signal.aborted) setProgress(run);
+          },
+          (error) => {
+            if (!controller.signal.aborted) setProgressError(error.message);
+          },
+        );
+      } catch {
+        setProgressError(
+          "Live updates are unavailable. Your reply will still appear when it finishes.",
+        );
+      }
+    }
     try {
       const saved = live
         ? await sendConversationMessage(
@@ -131,9 +170,13 @@ export function useConversations(
           )
         : demoConversation(active, id, message, items);
       if (controller.signal.aborted) return;
+      subscription.current?.();
+      subscription.current = null;
       setPending("");
       setActive(saved);
-      setAnimatedMessage(saved.messages.length - 1);
+      setProgress(null);
+      setProgressError("");
+      setAnimatedMessage(live ? -1 : saved.messages.length - 1);
       retry.current = null;
       setConversations((all) =>
         [saved, ...all.filter((c) => c.id !== id)].slice(0, 100),
@@ -157,6 +200,8 @@ export function useConversations(
         setText(message);
       }
     } finally {
+      subscription.current?.();
+      subscription.current = null;
       sending.current = false;
       if (!controller.signal.aborted) {
         setBusy(false);
@@ -170,6 +215,8 @@ export function useConversations(
     text,
     setText,
     pending,
+    progress,
+    progressError,
     busy,
     loading,
     error,

@@ -11,6 +11,10 @@ service cloud.firestore {
     match /expenses/{id} { allow read: if internal(); allow write: if false; }
     match /journals/{id} { allow read: if internal(); allow write: if false; }
     match /companies/{id} { allow read: if internal(); allow write: if false; }
+    match /chatRuns/{id} {
+      allow read: if internal() && resource.data.createdBy == request.auth.uid;
+      allow write: if false;
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }

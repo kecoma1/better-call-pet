@@ -15,6 +15,9 @@ vi.mock("../src/services/chat", async (original) => ({
   sendConversationMessage: vi.fn(),
 }));
 vi.mock("../src/firebase", () => ({ auth: null }));
+vi.mock("../src/services/chat-events", () => ({
+  watchChatRun: vi.fn(() => vi.fn()),
+}));
 import * as service from "../src/services/chat";
 import Chat from "../src/components/chat";
 import ChatMessage from "../src/components/chat-message";
@@ -351,5 +354,87 @@ describe("conversation lifecycle", () => {
     const signal = vi.mocked(service.fetchConversations).mock.calls[0][0]!;
     unmount();
     expect(signal.aborted).toBe(true);
+  });
+});
+
+describe("live event subscription lifecycle", () => {
+  it("shows snapshots during a request and detaches before refreshing the workspace", async () => {
+    const { watchChatRun } = await import("../src/services/chat-events");
+    let finish!: (value: Conversation) => void;
+    const stop = vi.fn();
+    vi.mocked(watchChatRun).mockReturnValueOnce(stop);
+    vi.mocked(service.sendConversationMessage).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    let refresh!: () => void;
+    const onRefresh = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          refresh = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useConversations(true, [], onRefresh));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    let sent!: Promise<void>;
+    act(() => {
+      sent = result.current.send("Check my VAT");
+    });
+    const receive = vi.mocked(watchChatRun).mock.calls.at(-1)![2];
+    act(() =>
+      receive({
+        requestId: "22222222-2222-4222-8222-222222222222",
+        conversationId: id,
+        createdBy: "member",
+        status: "running",
+        updatedAt: "2026-11-01T12:00:00.000Z",
+        content: "Partial",
+        tools: [],
+        events: [],
+      }),
+    );
+    expect(result.current.progress?.content).toBe("Partial");
+    expect(result.current.busy).toBe(true);
+    await act(async () => {
+      finish(conversation);
+    });
+    expect(stop).toHaveBeenCalledOnce();
+    expect(result.current.progress).toBeNull();
+    expect(result.current.active?.messages.at(-1)?.content).toBe(
+      "Review the invoices.",
+    );
+    await act(async () => {
+      refresh();
+      await sent;
+    });
+    expect(stop).toHaveBeenCalledOnce();
+  });
+  it("unsubscribes on unmount and lets a real HTTP reply finish if the listener fails", async () => {
+    const { watchChatRun } = await import("../src/services/chat-events");
+    const stop = vi.fn();
+    vi.mocked(watchChatRun).mockReturnValueOnce(stop);
+    let finish!: (value: Conversation) => void;
+    vi.mocked(service.sendConversationMessage).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result, unmount } = renderHook(() =>
+      useConversations(true, [], vi.fn()),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    act(() => {
+      void result.current.send("Check my VAT");
+    });
+    const fail = vi.mocked(watchChatRun).mock.calls.at(-1)![3];
+    act(() => fail(Error("Listener unavailable")));
+    expect(result.current.progressError).toBe("Listener unavailable");
+    expect(result.current.busy).toBe(true);
+    unmount();
+    expect(stop).toHaveBeenCalledOnce();
+    await act(async () => finish(conversation));
   });
 });

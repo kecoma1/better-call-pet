@@ -79,6 +79,16 @@ beforeEach(() => {
   state.docs.clear();
   state.run.mockReset().mockResolvedValue({
     finalOutput: "Check your invoice evidence before claiming VAT.",
+    completed: Promise.resolve(),
+    async *[Symbol.asyncIterator]() {
+      yield {
+        type: "raw_model_stream_event",
+        data: {
+          type: "output_text_delta",
+          delta: "Check your invoice evidence before claiming VAT.",
+        },
+      };
+    },
   });
   state.quota.mockReset().mockResolvedValue(undefined);
   state.tools = [];
@@ -118,7 +128,11 @@ describe("conversation classification and persistence", () => {
     await expect(sendConversationMessage("member", request)).rejects.toThrow(
       "usable conversation topic",
     );
-    expect(state.docs.size).toBe(0);
+    expect(
+      [...state.docs.keys()].filter((key: string) =>
+        key.startsWith("conversations/"),
+      ),
+    ).toHaveLength(0);
     expect(state.run).not.toHaveBeenCalled();
   });
   it("saves a classified turn once, strips private metadata and reuses a completed retry", async () => {
@@ -157,7 +171,11 @@ describe("conversation classification and persistence", () => {
     await expect(sendConversationMessage("member", request)).rejects.toThrow(
       "could not classify",
     );
-    expect(state.docs.size).toBe(0);
+    expect(
+      [...state.docs.keys()].filter((key: string) =>
+        key.startsWith("conversations/"),
+      ),
+    ).toHaveLength(0);
     expect(state.run).not.toHaveBeenCalled();
   });
   it("releases a failed agent turn and keeps the previous completed history", async () => {
@@ -286,14 +304,22 @@ describe("conversation classification and persistence", () => {
       await expect(sendConversationMessage("member", bad)).rejects.toThrow();
     }
     expect(fetch).not.toHaveBeenCalled();
-    expect(state.docs.size).toBe(0);
+    expect(
+      [...state.docs.keys()].filter((key: string) =>
+        key.startsWith("conversations/"),
+      ),
+    ).toHaveLength(0);
   });
   it("applies the AI quota and fails without creating a conversation when unavailable", async () => {
     state.quota.mockRejectedValueOnce(Error("Daily AI limit reached"));
     await expect(sendConversationMessage("member", request)).rejects.toThrow(
       "Daily AI limit",
     );
-    expect(state.docs.size).toBe(0);
+    expect(
+      [...state.docs.keys()].filter((key: string) =>
+        key.startsWith("conversations/"),
+      ),
+    ).toHaveLength(0);
     expect(fetch).not.toHaveBeenCalled();
     delete process.env.OPENAI_API_KEY;
     await expect(
@@ -346,6 +372,116 @@ describe("deterministic cards and actual tool activity", () => {
     await expect(sendConversationMessage("member", request)).rejects.toThrow(
       "could not finish",
     );
-    expect(state.docs.size).toBe(0);
+    expect(
+      [...state.docs.keys()].filter((key: string) =>
+        key.startsWith("conversations/"),
+      ),
+    ).toHaveLength(0);
+  });
+});
+
+describe("persisted live chat runs", () => {
+  it("publishes real tool events and partial text before the HTTP operation finishes", async () => {
+    let finish!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    state.tools = [
+      {
+        name: "get_company",
+        description: "Company",
+        schema: {},
+        execute: async () => defaultCompany,
+      },
+    ];
+    state.run.mockImplementationOnce(async (agent) => ({
+      finalOutput: "First part. Final part.",
+      completed: Promise.resolve(),
+      async *[Symbol.asyncIterator]() {
+        await agent.options.tools[0].execute({});
+        yield {
+          type: "raw_model_stream_event",
+          data: { type: "output_text_delta", delta: "First part." },
+        };
+        await gate;
+        yield {
+          type: "raw_model_stream_event",
+          data: { type: "output_text_delta", delta: " Final part." },
+        };
+      },
+    }));
+    let finished = false;
+    const response = sendConversationMessage("member", request).then(
+      (value) => {
+        finished = true;
+        return value;
+      },
+    );
+    await vi.waitFor(() =>
+      expect(state.docs.get("chatRuns/" + requestId)?.content).toBe(
+        "First part.",
+      ),
+    );
+    expect(finished).toBe(false);
+    const partial = state.docs.get("chatRuns/" + requestId);
+    expect(partial.createdBy).toBe("member");
+    expect(partial.tools[0].company.name).toBe(defaultCompany.name);
+    expect(partial.events.map((event: any) => event.kind)).toEqual([
+      "classifying",
+      "classified",
+      "tool_started",
+      "tool_completed",
+      "responding",
+    ]);
+    finish();
+    const saved = await response;
+    expect(saved.messages.at(-1)!.activity!.at(-1)!.kind).toBe("completed");
+    expect(state.docs.get("chatRuns/" + requestId).status).toBe("completed");
+    expect(state.docs.get("chatRuns/" + requestId).content).toBe(
+      "First part. Final part.",
+    );
+  });
+  it("marks failed runs and rejects request-ID reuse across members or conversations", async () => {
+    state.quota.mockRejectedValueOnce(Error("Quota exhausted"));
+    await expect(sendConversationMessage("member", request)).rejects.toThrow(
+      "Quota exhausted",
+    );
+    const failed = state.docs.get("chatRuns/" + requestId);
+    expect(failed.status).toBe("failed");
+    expect(failed.events.at(-1).kind).toBe("failed");
+    await expect(
+      sendConversationMessage("other", {
+        ...request,
+        conversationId: crypto.randomUUID(),
+      }),
+    ).rejects.toThrow("different message");
+    expect(state.docs.get("chatRuns/" + requestId).createdBy).toBe("member");
+  });
+});
+
+describe("bounded progress writer", () => {
+  it("flushes trailing text and fences delayed updates before completion", async () => {
+    const { chatProgress, initialChatRun } = await import("../src/chat-progress");
+    const initial = initialChatRun("member", id, requestId);
+    state.docs.set("chatRuns/" + requestId, { ...initial, attemptId: "attempt" });
+    const progress = chatProgress(initial, "attempt");
+    await progress.text("First");
+    await progress.text(" trailing");
+    await vi.waitFor(() => expect(state.docs.get("chatRuns/" + requestId).content).toBe("First trailing"));
+    await progress.text(" final");
+    await progress.complete("Final reply", progress.completion());
+    await progress.text(" obsolete");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(state.docs.get("chatRuns/" + requestId).content).toBe("Final reply");
+    expect(state.docs.get("chatRuns/" + requestId).status).toBe("completed");
+  });
+  it("rejects oversized text and a writer from a replaced attempt", async () => {
+    const { chatProgress, initialChatRun } = await import("../src/chat-progress");
+    const initial = initialChatRun("member", id, requestId);
+    state.docs.set("chatRuns/" + requestId, { ...initial, attemptId: "new-attempt" });
+    const progress = chatProgress(initial, "old-attempt");
+    await expect(progress.text("x".repeat(10001))).rejects.toThrow("too long");
+    await expect(progress.event({ kind: "classifying" })).rejects.toThrow("replaced");
+    expect(state.docs.get("chatRuns/" + requestId).events).toEqual([]);
   });
 });

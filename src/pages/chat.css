@@ -350,3 +350,32 @@ main.chat-main {
     font-size: 10px;
   }
 }
+.chat-activity {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0 0 14px;
+  padding: 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.chat-activity li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.chat-activity-panel {
+  margin-bottom: 12px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.chat-activity-panel > summary {
+  cursor: pointer;
+  font-weight: 550;
+}
+.chat-activity-panel[open] > .chat-activity {
+  margin-top: 10px;
+}

@@ -1,8 +1,12 @@
 import { z } from "zod";
 import { api } from "./api";
-import { conversationTopics, type Conversation } from "../domain";
+import {
+  chatEventKinds,
+  conversationTopics,
+  type Conversation,
+} from "../domain";
 
-const toolSchema = z.object({
+export const toolSchema = z.object({
   name: z.enum([
     "list_receipts",
     "get_company",
@@ -29,6 +33,23 @@ const toolSchema = z.object({
     })
     .optional(),
 });
+export const chatEventSchema = z.object({
+  sequence: z.number().int().nonnegative(),
+  kind: z.enum(chatEventKinds),
+  at: z.iso.datetime(),
+  tool: toolSchema.shape.name.optional(),
+  topic: z.enum(conversationTopics).optional(),
+});
+export const chatRunSchema = z.object({
+  requestId: z.uuid(),
+  conversationId: z.uuid(),
+  createdBy: z.string().min(1),
+  status: z.enum(["running", "completed", "failed"]),
+  updatedAt: z.iso.datetime(),
+  content: z.string().max(10000),
+  tools: z.array(toolSchema).max(12),
+  events: z.array(chatEventSchema).max(80),
+});
 export const conversationSummarySchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -43,6 +64,7 @@ export const conversationSchema = conversationSummarySchema.extend({
       role: z.enum(["user", "assistant"]),
       content: z.string().min(1),
       tools: z.array(toolSchema).optional(),
+      activity: z.array(chatEventSchema).max(80).optional(),
     }),
   ),
 });

@@ -52,8 +52,7 @@ snapshots from successful `sharedTools` executions, not model-generated card
 payloads. Receipt cards contain integer-pence totals and draft/post state;
 company cards omit tax identifiers. Snapshots include at most 20 receipts and
 explicit total counts, at most 12 tool results per reply, and are retained for
-the latest 10 messages. Older message text and tool pills remain. Tool pills appear with the
-finished answer; this endpoint does not stream tool execution.
+the latest 10 messages. Older message text and tool pills remain. Tool pills and bounded card results appear while the server executes each tool. Final messages retain their activity history.
 
 Demo conversations use browser-only storage under `bcp-demo-chats-v1`, labelled
 `demo-rules`; live histories are never stored there. The floating chat and Chat
@@ -61,3 +60,11 @@ screen share one mounted session, including unsent text and in-flight requests.
 Fresh assistant words fade in at 24 ms intervals (capped to a 1.4-second reveal)
 with a 180 ms fade; history stays still, and reduced motion shows text immediately.
 The card/pill presentation follows Goals Tracker and AVEC’s chat patterns.
+
+## Live chat events
+
+Each accepted `POST /api/chat` creates an owner-only root `/chatRuns/{requestId}` document in the same transaction that claims the conversation lease. The client subscribes before sending through an owner- and request-filtered Firestore `onSnapshot` query; an initially absent run is valid. Only active internal owners can read these documents. All client writes are denied. The HTTP API remains responsible for identity, membership, provider calls and mutations.
+
+Run snapshots include classification, tool start/completion/failure, public assistant text and terminal state. Only normalized public SDK text deltas are published, never raw provider events or private reasoning. Text writes are serialized and coalesced to 250 ms with a trailing flush, following Goals Tracker's bounded progress-writer pattern. Completion cancels pending writes so old progress cannot overwrite the final state. Each attempt is fenced by a server-generated attempt ID. Limits are 10,000 reply characters, 80 activity events and 12 tool results.
+
+The listener detaches before applying the final HTTP reply, on failure and on unmount/account changes. Navigating between the floating chat and the full chat keeps the same mounted owner and active subscription. Listener errors are visible while the real HTTP request continues; there is no demo fallback. Completed activity is saved with the assistant message and collapses in the UI, following AVEC's activity presentation.

@@ -1,4 +1,10 @@
 import { getFirestore } from "firebase-admin/firestore";
+import { randomUUID } from "node:crypto";
+import {
+  chatProgress,
+  initialChatRun,
+  type ChatProgress,
+} from "./chat-progress.js";
 import { Agent, run, tool } from "@openai/agents";
 import { z } from "zod";
 import { aiQuota, sharedTools } from "./tools.js";
@@ -45,8 +51,7 @@ export async function getConversation(
   id: string,
 ): Promise<Conversation> {
   const data = (await conversations().doc(z.uuid().parse(id)).get()).data() as
-    | StoredConversation
-    | undefined;
+    StoredConversation | undefined;
   if (!data || data.createdBy !== uid || !data.messages.length)
     throw unavailable();
   return visibleConversation(data);
@@ -171,6 +176,7 @@ export function presentToolResult(
 export async function replyToConversation(
   uid: string,
   messages: ChatMessage[],
+  progress?: ChatProgress,
 ): Promise<ChatMessage> {
   const activity: ChatToolResult[] = [];
   const tools = sharedTools(uid).map((t) =>
@@ -179,10 +185,18 @@ export async function replyToConversation(
       description: t.description,
       parameters: t.schema,
       execute: async (args) => {
-        const result = await t.execute(args);
-        activity.push(
-          presentToolResult(t.name as ChatToolResult["name"], result),
-        );
+        const name = t.name as ChatToolResult["name"];
+        await progress?.event({ kind: "tool_started", tool: name });
+        let result;
+        try {
+          result = await t.execute(args);
+        } catch (error) {
+          await progress?.event({ kind: "tool_failed", tool: name });
+          throw error;
+        }
+        const presented = presentToolResult(name, result);
+        activity.push(presented);
+        await progress?.tool(presented);
         return JSON.stringify(result);
       },
     }),
@@ -204,12 +218,40 @@ export async function replyToConversation(
           content: [{ type: "output_text" as const, text: m.content }],
         },
   );
-  const result = await run(agent, history, {
-    maxTurns: 6,
-    signal: AbortSignal.timeout(65000),
-  }).catch(() => {
+  let result;
+  try {
+    if (progress) {
+      const stream = await run(agent, history, {
+        stream: true,
+        maxTurns: 6,
+        signal: AbortSignal.timeout(65000),
+      });
+      // Observe completion rejection immediately, as in AVEC's stream adapter.
+      void stream.completed.catch(() => undefined);
+      let responding = false;
+      for await (const event of stream) {
+        if (
+          event.type === "raw_model_stream_event" &&
+          event.data.type === "output_text_delta"
+        ) {
+          if (!responding) {
+            await progress.event({ kind: "responding" });
+            responding = true;
+          }
+          await progress.text(event.data.delta);
+        }
+      }
+      await stream.completed;
+      result = stream;
+    } else {
+      result = await run(agent, history, {
+        maxTurns: 6,
+        signal: AbortSignal.timeout(65000),
+      });
+    }
+  } catch {
     throw Error("Saul could not finish his reply. Please try again.");
-  });
+  }
   if (
     typeof result.finalOutput !== "string" ||
     !result.finalOutput.trim() ||
@@ -229,6 +271,13 @@ export async function sendConversationMessage(
   const request = chatRequestSchema.parse(input);
   const db = getFirestore(),
     ref = conversations().doc(request.conversationId);
+  const attemptId = randomUUID();
+  const runRef = db.collection("chatRuns").doc(request.requestId);
+  const initial = initialChatRun(
+    uid,
+    request.conversationId,
+    request.requestId,
+  );
   const previous = await db.runTransaction(async (tx) => {
     const data = (await tx.get(ref)).data() as StoredConversation | undefined;
     if (data && data.createdBy !== uid) throw unavailable();
@@ -237,6 +286,14 @@ export async function sendConversationMessage(
         throw Error("This request was already used for a different message.");
       return data;
     }
+    const existingRun = (await tx.get(runRef)).data();
+    if (
+      existingRun &&
+      (existingRun.createdBy !== uid ||
+        existingRun.conversationId !== request.conversationId ||
+        existingRun.message !== request.message)
+    )
+      throw Error("This request was already used for a different message.");
     if (data && data.pendingUntil > Date.now())
       throw Error(
         "Saul is already replying to this conversation. Please wait.",
@@ -259,10 +316,12 @@ export async function sendConversationMessage(
         messages: [],
         ...pending,
       });
+    tx.set(runRef, { ...initial, attemptId, message: request.message });
     return data;
   });
   if (previous?.lastRequestId === request.requestId)
     return visibleConversation(previous);
+  const progress = chatProgress(initial, attemptId);
   try {
     await aiQuota(uid);
     const messages: ChatMessage[] = [
@@ -270,8 +329,11 @@ export async function sendConversationMessage(
       { role: "user", content: request.message },
     ];
     // Classification must succeed before an agent can perform any requested draft mutations.
+    await progress.event({ kind: "classifying" });
     const classification = await classifyConversation(messages.slice(-16));
-    const reply = await replyToConversation(uid, messages.slice(-16));
+    await progress.event({ kind: "classified", topic: classification.topic });
+    const reply = await replyToConversation(uid, messages.slice(-16), progress);
+    reply.activity = progress.completion();
     const saved: StoredConversation = {
       id: request.conversationId,
       title: previous?.title ?? request.message.slice(0, 80),
@@ -305,8 +367,10 @@ export async function sendConversationMessage(
         );
       tx.set(ref, saved);
     });
+    await progress.complete(reply.content, reply.activity);
     return visibleConversation(saved);
   } catch (error) {
+    await progress.fail().catch(() => {});
     await db.runTransaction(async (tx) => {
       const data = (await tx.get(ref)).data();
       if (data?.pendingRequestId !== request.requestId) return;
