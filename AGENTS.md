@@ -14,6 +14,8 @@ The current objective is an internal **expenses foundation**, not a complete UK 
 - Do not claim annual accounts, CT600, iXBRL, VAT filing, bank reconciliation, accepted submissions or completed payments until actually implemented and tested.
 - Videos are a separate work area: asset agents own `public/chibi/` and `marketing/chibi/`; app agents consume the filename contract in `docs/architecture.md`.
 
-Before committing: `npm test`, `npm run build`, `npm --prefix functions run build`, and affected Playwright scenarios. Add tests for new domain/permission/state-transition behaviour. Keep package lockfiles tracked. Use `codex/` for subsequent branches, and coordinate shared files before parallel edits.
+Before committing code changes: `npm test`, `npm run build`, and `npm --prefix functions run build`. Add tests for new domain/permission/state-transition behaviour. Keep package lockfiles tracked. Use `codex/` for subsequent branches, and coordinate shared files before parallel edits.
 
 Delivery workflow (explicit user preference): when work is complete and the required checks pass, merge into the current `main`, push to `origin/main`, and deploy the affected Firebase targets in `rent-o-accountant`. This is standing authorization; do not ask for confirmation again unless the user changes the scope. Preserve other work already merged into `main`, verify the deployed version and API, and report the commit and live URL.
+
+Temporary testing preference (explicit user instruction): do not run end-to-end (E2E) tests or Playwright scenarios for now. Resume them only when the user explicitly re-enables them. Unit tests and build checks remain applicable.
