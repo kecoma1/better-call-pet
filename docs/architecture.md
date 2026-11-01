@@ -10,6 +10,14 @@ Clicking an expense row (overview or receipts) or a ledger row opens the shared 
 
 The overview's Saul banner is the expense notifications area. `src/lib/notifications.ts` derives current work from review-state expenses: missing invoice evidence, VAT reviews, then expenses awaiting approval. `NotificationsBanner` lets users browse these groups and open the relevant expense sheet. Posting updates the banner immediately. These are current-work notifications; there is no push delivery, unread status or notification history yet.
 
+The Chat sidebar entry and the floating Saul panel share `useConversations` through
+one mounted `Chat` owner. Conversation history, topic filtering, search, cards and
+tool pills live in `src/pages/chat.tsx` and focused chat components. HTTP requests
+live in `src/services/chat.ts`; `functions/src/chat.ts` owns server history,
+Decisions topic classification and the Agents SDK adapter. The root
+`conversations` collection is private per internal member and denies direct client
+access. Agent and MCP still execute the same `sharedTools` registry.
+
 The Google account configured as `INTERNAL_ADMIN_EMAIL` can enroll as the first internal admin. Other accounts require an existing active `/users/{uid}` membership. Revoking membership also blocks OAuth access. The company and all expenses are shared internally.
 
 ## Stable boundaries for parallel development
@@ -18,7 +26,7 @@ The Google account configured as `INTERNAL_ADMIN_EMAIL` can enroll as the first 
 | -------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Shell / design | `src/App.tsx`, `src/style.css`, `src/components/ui/`                                 | Sidebar pages, dark theme variables, stock shadcn components.                                                                       |
 | Expenses       | `src/components/receipt-*`, `src/pages/overview.tsx`, `functions/src/tools.ts`       | `ReceiptInput`, `Receipt`, decision provenance and integer-pence journals in `src/domain.ts`. Coordinate edits to that shared file. |
-| Chat           | `src/components/chat.tsx`, agent handler in `functions/src/app.ts`                   | `POST /api/chat`; sharedTools registry; gpt-6-luna.                                                                                 |
+| Chat           | `src/components/chat*`, `src/pages/chat.tsx`, `functions/src/chat.ts`                | `POST /api/chat`; sharedTools registry; gpt-6-luna.                                                                                 |
 | OAuth/MCP      | `functions/src/oauth.ts`, MCP handler, `src/pages/connect.tsx`, settings connections | OAuth endpoints and resource `https://rent-o-accountant.web.app/mcp`.                                                               |
 | Media          | `public/chibi/`, `marketing/chibi/`, `skills/video-generator/`                       | Filename contract below; app code needs no media-specific changes.                                                                  |
 | Reporting      | `src/pages/books.tsx`, `src/pages/reports.tsx`                                       | Read posted expenses; do not invent sales or missing opening balances.                                                              |

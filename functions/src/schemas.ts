@@ -1,4 +1,11 @@
 import { z } from "zod";
+export const chatRequestSchema = z
+  .object({
+    conversationId: z.uuid(),
+    requestId: z.uuid(),
+    message: z.string().trim().min(1).max(5000),
+  })
+  .strict();
 export const receiptSchema = z.object({
   vendor: z.string().trim().min(1).max(160),
   date: z.iso.date(),

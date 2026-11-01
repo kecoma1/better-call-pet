@@ -49,6 +49,7 @@ Firestore uses **root collections**, shared by authorised internal users:
 | `companies/primary`                                                             | Shared LTD configuration.                                             |
 | `expenses`                                                                      | Receipt fields, decision provenance, review/post state, creator.      |
 | `journals`                                                                      | Balanced entries, one deterministic document per expense.             |
+| `conversations`                                                                 | Private per-member chat history, topic provenance and tool snapshots. |
 | `aiUsage`                                                                       | Per-member daily AI request count.                                    |
 | `oauthClients`, `oauthCodes`, `oauthAccess`, `oauthRefresh`, `oauthConnections` | OAuth registration, short-lived grants, hashed tokens and revocation. |
 

@@ -50,7 +50,9 @@ test("review, post once, inspect ledger and open Saul", async ({ page }) => {
     .getByRole("textbox", { name: "Message Saul" })
     .fill("What needs attention?");
   await page.getByRole("button", { name: "Send message" }).click();
-  await expect(page.getByText(/This is the demo workspace/)).toBeVisible();
+  await expect(
+    page.getByRole("article", { name: "Saul’s reply" }).last(),
+  ).toContainText("This is the demo workspace");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

@@ -4,7 +4,6 @@ import { api } from "../src/services/api";
 import {
   fetchWorkspace,
   createReceipt,
-  sendChat,
   fetchConnections,
   extractReceipt,
 } from "../src/services/workspace";
@@ -69,12 +68,6 @@ describe("workspace response boundaries", () => {
     await expect(createReceipt(examples[0])).rejects.toThrow(
       "No receipt was returned",
     );
-  });
-  it("rejects a missing assistant reply", async () => {
-    vi.mocked(api).mockResolvedValue({});
-    await expect(
-      sendChat([{ role: "user", content: "Hello" }]),
-    ).rejects.toThrow("could not finish");
   });
   it("rejects malformed connection responses", async () => {
     vi.mocked(api).mockResolvedValue({ connections: [] });

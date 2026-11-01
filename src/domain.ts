@@ -1,4 +1,37 @@
 export type Verdict = "deductible" | "not_deductible" | "review";
+export const conversationTopics = [
+  "VAT",
+  "Bookkeeping",
+  "Annual accounts",
+  "Corporate Tax",
+  "Receipts",
+] as const;
+export type ConversationTopic = (typeof conversationTopics)[number];
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  tools?: ChatToolResult[];
+}
+export interface ChatToolResult {
+  name: "list_receipts" | "get_company" | "create_receipt" | "save_company";
+  receipts?: Pick<
+    Receipt,
+    "id" | "vendor" | "netPence" | "vatPence" | "status"
+  >[];
+  receiptCount?: number;
+  company?: Pick<Company, "name" | "vatRegistered" | "yearEnd">;
+}
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  topic: ConversationTopic;
+  preview: string;
+  updatedAt: string;
+  provider: "openai-decisions" | "demo-rules";
+}
+export interface Conversation extends ConversationSummary {
+  messages: ChatMessage[];
+}
 export type Category =
   | "Software"
   | "Office supplies"

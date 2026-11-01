@@ -7,7 +7,6 @@ vi.mock("../src/firebase", () => ({
   api: vi.fn(),
 }));
 vi.mock("../src/services/workspace", () => ({
-  sendChat: vi.fn(),
   fetchConnections: vi.fn(),
   saveCompany: vi.fn(),
   extractReceipt: vi.fn(),

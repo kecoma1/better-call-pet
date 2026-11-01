@@ -1,0 +1,82 @@
+import { z } from "zod";
+import { api } from "./api";
+import { conversationTopics, type Conversation } from "../domain";
+
+const toolSchema = z.object({
+  name: z.enum([
+    "list_receipts",
+    "get_company",
+    "create_receipt",
+    "save_company",
+  ]),
+  receipts: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        vendor: z.string(),
+        netPence: z.number().int().nonnegative(),
+        vatPence: z.number().int().nonnegative(),
+        status: z.enum(["review", "posted"]),
+      }),
+    )
+    .optional(),
+  receiptCount: z.number().int().nonnegative().optional(),
+  company: z
+    .object({
+      name: z.string(),
+      vatRegistered: z.boolean(),
+      yearEnd: z.string(),
+    })
+    .optional(),
+});
+export const conversationSummarySchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  topic: z.enum(conversationTopics),
+  preview: z.string(),
+  updatedAt: z.iso.datetime(),
+  provider: z.enum(["demo-rules", "openai-decisions"]),
+});
+export const conversationSchema = conversationSummarySchema.extend({
+  messages: z.array(
+    z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string().min(1),
+      tools: z.array(toolSchema).optional(),
+    }),
+  ),
+});
+export async function fetchConversations(signal?: AbortSignal) {
+  const result = z
+    .array(conversationSummarySchema)
+    .safeParse(await api("/conversations", undefined, signal));
+  if (!result.success)
+    throw Error("Could not load conversations. Please try again.");
+  return result.data;
+}
+export async function fetchConversation(
+  id: string,
+  signal?: AbortSignal,
+): Promise<Conversation> {
+  const result = conversationSchema.safeParse(
+    await api("/conversations/" + encodeURIComponent(id), undefined, signal),
+  );
+  if (!result.success || result.data.id !== id)
+    throw Error("Could not open this conversation. Please try again.");
+  return result.data;
+}
+export async function sendConversationMessage(
+  conversationId: string,
+  message: string,
+  requestId: string,
+  signal?: AbortSignal,
+): Promise<Conversation> {
+  const result = z
+    .object({ conversation: conversationSchema })
+    .safeParse(
+      await api("/chat", { conversationId, message, requestId }, signal),
+    );
+  if (!result.success || result.data.conversation.id !== conversationId)
+    throw Error("Saul could not finish his reply. Please try again.");
+  return result.data.conversation;
+}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard,
+  MessageCircle,
   ReceiptText,
   BookOpen,
   Files,
@@ -34,6 +35,7 @@ import Chat from "./components/chat";
 import type { Receipt } from "./domain";
 const navigation = [
   { name: "Overview", icon: LayoutDashboard },
+  { name: "Chat", icon: MessageCircle },
   { name: "Receipts", icon: ReceiptText },
   { name: "Bookkeeping", icon: BookOpen },
   { name: "Annual accounts", icon: Files },
@@ -269,11 +271,23 @@ export default function App() {
             </>
           ) : page === "Bookkeeping" ? (
             <Books items={w.items} onSelect={setSelected} />
-          ) : page === "Settings" ? (
+          ) : page === "Chat" ? null : page === "Settings" ? (
             <Settings company={w.company} onSave={w.save} live={!!w.user} />
           ) : (
             <Reports page={page} items={w.items} company={w.company} />
           )}
+          <Chat
+            key={w.user?.uid || "demo"}
+            live={!!w.user}
+            items={w.items}
+            onRefresh={w.refresh}
+            view={page === "Chat" ? "page" : "floating"}
+            onExpand={() => navigate("Chat")}
+            onOpenReceipt={(id) => {
+              const receipt = w.items.find((item) => item.id === id);
+              if (receipt) setSelected(receipt);
+            }}
+          />
         </main>
       </div>
       <ReceiptDialog
@@ -288,12 +302,6 @@ export default function App() {
         receipt={selected && selected !== "new" ? selected : null}
         onClose={() => setSelected(null)}
         onPost={w.post}
-      />
-      <Chat
-        key={w.user?.uid || "demo"}
-        live={!!w.user}
-        items={w.items}
-        onRefresh={w.refresh}
       />
     </div>
   );

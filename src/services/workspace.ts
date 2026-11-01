@@ -40,14 +40,6 @@ export async function extractReceipt(image: string) {
     throw Error("Saul returned incomplete receipt data. Please try again.");
   return result.data;
 }
-export async function sendChat(
-  messages: { role: "user" | "assistant"; content: string }[],
-) {
-  const d = await api("/chat", { messages });
-  if (typeof d.message !== "string")
-    throw Error("Saul could not finish his reply.");
-  return d.message as string;
-}
 export async function fetchConnections(signal?: AbortSignal) {
   const d = await api("/connections", undefined, signal);
   if (!Array.isArray(d)) throw Error("Could not load connections.");
