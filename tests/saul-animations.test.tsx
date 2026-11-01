@@ -38,6 +38,9 @@ describe("distinct Saul animations by placement", () => {
         screen.getByRole("button", { name: "Open chat with Saul" }),
       ).getByRole("img");
       expect(launcher).toHaveAttribute("src", "/chibi/saul-smoking" + suffix);
+      expect(
+        screen.queryByText("Better call Saul.", { exact: true }),
+      ).not.toBeInTheDocument();
       const banner = screen.getByRole("region", { name: "Notifications" });
       expect(within(banner).getByRole("img")).toHaveAttribute(
         "src",
